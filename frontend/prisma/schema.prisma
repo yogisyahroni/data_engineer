@@ -1,0 +1,614 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Workspace relationships
+  ownedWorkspaces      Workspace[]       @relation("WorkspaceOwner")
+  workspaceMemberships WorkspaceMember[]
+
+  // Legacy direct relationships (will be deprecated)
+  connections   Connection[]
+  collections   Collection[]
+  queries       SavedQuery[]
+  dashboards    Dashboard[]
+  stories       Story[]
+  metrics       Metric[]
+  dimensions    Dimension[]
+  relationships VirtualRelationship[]
+  
+  // Security
+  rlsPolicies   RLSPolicy[]
+  
+  // Alerts
+  alerts        Alert[]
+  
+  // Dataflows
+  dataflows     Dataflow[]
+  
+  // Sharings
+  shareLinks    ShareLink[]
+  
+  // Comments
+  comments      Comment[]
+  
+  // Activities
+  activities    Activity[]
+  
+  // Versions
+  queryVersions     QueryVersion[]
+  dashboardVersions DashboardVersion[]
+
+  // API Keys
+  apiKeys           ApiKey[]
+}
+
+model Connection {
+  id       String  @id @default(cuid())
+  name     String
+  type     String // postgres, mysql, etc
+  host     String?
+  port     Int?
+  database String
+  username String?
+  password String? // AES-256 Encrypted
+  isActive Boolean @default(true)
+  userId   String
+  user     User    @relation(fields: [userId], references: [id])
+
+  // Workspace relationship
+  workspaces WorkspaceConnection[]
+
+  queries       SavedQuery[]
+  metrics       Metric[]
+  dimensions    Dimension[]
+  relationships VirtualRelationship[]
+  
+  // Security
+  rlsPolicies   RLSPolicy[] // Inverse relation
+  
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+}
+
+model Collection {
+  id          String       @id @default(cuid())
+  name        String
+  description String?
+  icon        String?
+  userId      String
+  user        User         @relation(fields: [userId], references: [id])
+  parentId    String?
+  parent      Collection?  @relation("CollectionHierarchy", fields: [parentId], references: [id])
+  children    Collection[] @relation("CollectionHierarchy")
+  queries     SavedQuery[]
+  dashboards  Dashboard[]
+  stories     Story[]
+  metrics     Metric[]
+  dimensions  Dimension[]
+  isPublic    Boolean      @default(false)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model SavedQuery {
+  id                  String          @id @default(cuid())
+  name                String
+  description         String?
+  sql                 String
+  aiPrompt            String?
+  connectionId        String
+  connection          Connection      @relation(fields: [connectionId], references: [id])
+  collectionId        String
+  collection          Collection      @relation(fields: [collectionId], references: [id])
+  userId              String
+  user                User            @relation(fields: [userId], references: [id])
+  visualizationConfig Json? // Store chartType, xAxis, yAxis, etc
+  tags                String[]
+  pinned              Boolean         @default(false)
+  dashboardCards      DashboardCard[]
+  alerts              Alert[]
+  shareLinks          ShareLink[]
+  versions            QueryVersion[]
+  createdAt           DateTime        @default(now())
+  updatedAt           DateTime        @updatedAt
+}
+
+model Dashboard {
+  id           String     @id @default(cuid())
+  name         String
+  description  String?
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id])
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+
+  // Workspace relationship
+  workspaces WorkspaceDashboard[]
+
+  cards     DashboardCard[]
+  filters   Json?
+  isPublic  Boolean         @default(false)
+  shareLinks ShareLink[]
+  versions   DashboardVersion[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model DashboardCard {
+  id                  String      @id @default(cuid())
+  dashboardId         String
+  dashboard           Dashboard   @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+  queryId             String?
+  query               SavedQuery? @relation(fields: [queryId], references: [id])
+  type                String      @default("visualization") // visualization | text
+  title               String?
+  textContent         String?     @db.Text
+  position            Json // { x, y, w, h }
+  visualizationConfig Json?
+  createdAt           DateTime    @default(now())
+  updatedAt           DateTime    @updatedAt
+  
+  comments            Comment[]
+}
+
+model Story {
+  id           String     @id @default(cuid())
+  name         String
+  description  String?
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+  collectionId String
+  collection   Collection @relation(fields: [collectionId], references: [id])
+  isPublished  Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}
+
+model Metric {
+  id           String      @id @default(cuid())
+  name         String
+  label        String
+  description  String?
+  type         String // sum, avg, count, formula
+  definition   String // The SQL expression or YAML-like formula
+  connectionId String
+  connection   Connection  @relation(fields: [connectionId], references: [id])
+  collectionId String?
+  collection   Collection? @relation(fields: [collectionId], references: [id])
+  userId       String
+  user         User        @relation(fields: [userId], references: [id])
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@unique([connectionId, name])
+}
+
+model Dimension {
+  id           String      @id @default(cuid())
+  name         String
+  label        String
+  description  String?
+  type         String // string, number, date, boolean
+  columnName   String
+  tableName    String
+  connectionId String
+  connection   Connection  @relation(fields: [connectionId], references: [id])
+  collectionId String?
+  collection   Collection? @relation(fields: [collectionId], references: [id])
+  userId       String
+  user         User        @relation(fields: [userId], references: [id])
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+
+  @@unique([connectionId, tableName, columnName])
+}
+
+model VirtualRelationship {
+  id           String     @id @default(cuid())
+  fromTable    String
+  fromColumn   String
+  toTable      String
+  toColumn     String
+  type         String // one-to-one, one-to-many, many-to-many
+  connectionId String
+  connection   Connection @relation(fields: [connectionId], references: [id])
+  userId       String
+  user         User       @relation(fields: [userId], references: [id])
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@unique([connectionId, fromTable, fromColumn, toTable, toColumn])
+}
+
+model SystemSetting {
+  key       String   @id
+  value     String // JSON stringified value
+  updatedAt DateTime @updatedAt
+}
+
+// ========================================
+// RBAC & Multi-Tenancy Models (Phase 1.3)
+// ========================================
+
+model Workspace {
+  id   String        @id @default(cuid())
+  name String
+  slug String        @unique
+  plan WorkspacePlan @default(FREE)
+
+  ownerId String
+  owner   User   @relation("WorkspaceOwner", fields: [ownerId], references: [id])
+
+  members     WorkspaceMember[]
+  connections WorkspaceConnection[]
+  dashboards  WorkspaceDashboard[]
+  
+  // Security
+  rlsPolicies RLSPolicy[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@index([slug])
+}
+
+model WorkspaceMember {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  role      Role     @default(VIEWER)
+  invitedBy String?
+  invitedAt DateTime @default(now())
+
+  @@unique([workspaceId, userId])
+  @@index([userId])
+  @@index([workspaceId])
+}
+
+// Junction tables for workspace-scoped resources
+model WorkspaceConnection {
+  id           String     @id @default(cuid())
+  workspaceId  String
+  workspace    Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  connectionId String
+  connection   Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, connectionId])
+}
+
+model WorkspaceDashboard {
+  id          String    @id @default(cuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  dashboardId String
+  dashboard   Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, dashboardId])
+}
+
+// Enums
+enum WorkspacePlan {
+  FREE
+  PRO
+  ENTERPRISE
+}
+
+enum Role {
+  VIEWER // Read-only access
+  ADMIN // Manage connections, invite users
+  OWNER // Full control (only one per workspace)
+}
+
+// ========================================
+// Row-Level Security (RLS) Models (Phase 11.3)
+// ========================================
+
+model RLSPolicy {
+  id           String     @id @default(cuid())
+  name         String
+  description  String?
+  
+  // Scope
+  workspaceId  String
+  workspace    Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  connectionId String
+  connection   Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+  tableName    String     // The table this policy applies to
+  
+  // Target (Apply to WHO?)
+  role         Role?      // e.g., 'VIEWER'
+  userId       String?    // Apply to specific user (OVERRIDE)
+  user         User?      @relation(fields: [userId], references: [id])
+  
+  // Rule
+  condition    String     // SQL WHERE clause (e.g. "region = 'East'")
+  isActive     Boolean    @default(true)
+  
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([workspaceId])
+  @@index([connectionId, tableName])
+}
+
+// ========================================
+// Alerts & Notifications (Phase 12.1)
+// ========================================
+
+model Alert {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  
+  // What to check (link to Saved Query)
+  queryId     String
+  query       SavedQuery @relation(fields: [queryId], references: [id], onDelete: Cascade)
+  
+  // Condition Logic (Simple threshold for MVP)
+  // e.g. If "revenue" > 5000
+  column      String
+  operator    String   // >, <, =, >=, <=, !=
+  threshold   Float
+  
+  // Schedule
+  schedule    String   // "hourly", "daily", "weekly", or cron string
+  isActive    Boolean  @default(true)
+  
+  // Notification
+  email       String   // Recipient email(s), comma separated
+  
+  // State
+  lastRunAt   DateTime?
+  lastStatus  String?  // "OK", "TRIGGERED", "ERROR"
+  
+  // Ownership
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  history     AlertHistory[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([queryId])
+}
+
+model AlertHistory {
+  id          String   @id @default(cuid())
+  alertId     String
+  alert       Alert    @relation(fields: [alertId], references: [id], onDelete: Cascade)
+  
+  status      String   // "TRIGGERED", "OK", "ERROR"
+  value       Float?   // The actual value that was checked
+  message     String?  // Details or error message
+  
+  executedAt  DateTime @default(now())
+
+  @@index([alertId])
+}
+
+// ========================================
+// ETL & Dataflows (Phase 12.2)
+// ========================================
+
+model Dataflow {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  schedule    String?  // Cron expression (e.g. "0 9 * * *")
+  isActive    Boolean  @default(true)
+
+  steps       DataflowStep[]
+  runs        DataflowRun[]
+
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model DataflowStep {
+  id          String   @id @default(cuid())
+  dataflowId  String
+  dataflow    Dataflow @relation(fields: [dataflowId], references: [id], onDelete: Cascade)
+  order       Int
+
+  type        String   // "QUERY", "MATERIALIZE"
+  name        String
+
+  // Configuration
+  // QUERY: { sql: "...", connectionId: "..." }
+  // MATERIALIZE: { sourceStepId: "...", targetTable: "...", connectionId: "...", mode: "overwrite|append" }
+  config      Json
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([dataflowId])
+}
+
+model DataflowRun {
+  id          String   @id @default(cuid())
+  dataflowId  String
+  dataflow    Dataflow @relation(fields: [dataflowId], references: [id], onDelete: Cascade)
+
+  status      String   // "RUNNING", "COMPLETED", "FAILED"
+  startedAt   DateTime @default(now())
+  completedAt DateTime?
+  error       String?
+  logs        Json?    // Detailed execution log per step
+
+  @@index([dataflowId])
+}
+
+// ========================================
+// Sharing & Embedding (Phase 12.3)
+// ========================================
+
+model ShareLink {
+  id          String   @id @default(cuid())
+  token       String   @unique // The secure URL slug (NanoID)
+  
+  // Resource Pointers (Polymorphic-ish)
+  resourceType String  // "DASHBOARD" | "QUERY"
+  
+  dashboardId String?
+  dashboard   Dashboard? @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+  
+  queryId     String?
+  query       SavedQuery? @relation(fields: [queryId], references: [id], onDelete: Cascade)
+  
+  // Security Config
+  password    String?  // Optional password protection (hashed)
+  expiresAt   DateTime?
+  
+  // Analytics
+  viewCount   Int      @default(0)
+  lastViewedAt DateTime?
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([token])
+  @@index([userId])
+}
+
+// ========================================
+// Collaboration (Phase 12.4)
+// ========================================
+
+model Comment {
+  id          String   @id @default(cuid())
+  content     String   @db.Text
+  
+  // Resource Polymorphism (MVP: DashboardCard only)
+  dashboardCardId String
+  dashboardCard   DashboardCard @relation(fields: [dashboardCardId], references: [id], onDelete: Cascade)
+  
+  // Threading
+  parentId    String?
+  parent      Comment? @relation("CommentThread", fields: [parentId], references: [id])
+  replies     Comment[] @relation("CommentThread")
+  
+  // State
+  isResolved  Boolean  @default(false)
+  
+  // Author
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([dashboardCardId])
+  @@index([userId])
+}
+
+model Activity {
+  id          String   @id @default(cuid())
+  type        String   // "COMMENT", "ALERT", "CREATE", "MENTION"
+  description String
+  metadata    Json?    // Context (e.g. { dashboardId: "..." })
+  
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  createdAt   DateTime @default(now())
+
+  @@index([userId])
+  @@index([type])
+}
+
+// ========================================
+// API & Automation (Phase 12.6)
+// ========================================
+
+model ApiKey {
+  id          String    @id @default(cuid())
+  name        String
+  prefix      String    // First few chars for display (e.g. "sk_...")
+  key         String    @unique // Hashed full key
+  
+  // Permissions
+  scopes      String[]  @default(["read", "write"]) // implementation specific
+  
+  // Lifecycle
+  expiresAt   DateTime?
+  lastUsedAt  DateTime?
+  isActive    Boolean   @default(true)
+  
+  userId      String
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([key])
+}
+
+// ========================================
+// Version Control (Phase 12.5)
+// ========================================
+
+model QueryVersion {
+  id                  String     @id @default(cuid())
+  queryId             String
+  query               SavedQuery @relation(fields: [queryId], references: [id], onDelete: Cascade)
+  
+  // Snapshot Data
+  sql                 String
+  visualizationConfig Json?
+  
+  // Metadata
+  versionNumber       Int?       // Sequential version number (optional for MVP)
+  changeLog           String?    // Auto-generated description of change
+  
+  createdBy           String
+  user                User       @relation(fields: [createdBy], references: [id])
+  
+  createdAt           DateTime   @default(now())
+
+  @@index([queryId])
+}
+
+model DashboardVersion {
+  id          String    @id @default(cuid())
+  dashboardId String
+  dashboard   Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
+  
+  // Snapshot Data (Full JSON dump of cards)
+  cards       Json
+  
+  createdBy   String
+  user        User      @relation(fields: [createdBy], references: [id])
+  
+  createdAt   DateTime  @default(now())
+
+  @@index([dashboardId])
+}

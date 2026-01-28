@@ -1,0 +1,2 @@
+[stitch-mcp] Γä╣∩╕Å  Starting Stitch MCP Server v1.0.0 (win32)
+[stitch-mcp] Γ¥î Fatal Startup Error: Project ID not found. Set GOOGLE_CLOUD_PROJECT env var or run: gcloud config set project YOUR_PROJECT

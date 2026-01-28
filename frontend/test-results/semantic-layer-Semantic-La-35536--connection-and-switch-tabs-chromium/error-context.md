@@ -1,0 +1,97 @@
+# Page snapshot
+
+```yaml
+- generic:
+  - generic:
+    - complementary:
+      - generic:
+        - generic:
+          - generic: ⚡
+          - generic: InsightEngine
+      - navigation:
+        - link:
+          - /url: /
+          - button:
+            - img
+            - generic: Query Editor
+        - link:
+          - /url: /connections
+          - button:
+            - img
+            - generic: Connections
+        - link:
+          - /url: /modeling
+          - button:
+            - img
+            - generic: Modeling
+        - link:
+          - /url: /ingest
+          - button:
+            - img
+            - generic: Upload Data
+        - link:
+          - /url: /explorer
+          - button:
+            - img
+            - generic: Explorer
+        - link:
+          - /url: /dashboards
+          - button:
+            - img
+            - generic: Dashboards
+        - link:
+          - /url: /saved-queries
+          - button:
+            - img
+            - generic: Collections
+      - generic:
+        - button:
+          - generic: Databases
+          - img
+        - generic:
+          - button:
+            - generic:
+              - generic: Sample Database
+          - link:
+            - /url: /connections
+            - button:
+              - img
+              - text: Add Database
+      - generic:
+        - generic:
+          - link:
+            - /url: /settings
+            - button:
+              - img
+              - generic: Settings
+          - button:
+            - img
+            - generic: Toggle theme
+        - button:
+          - img
+          - generic: Logout
+    - main:
+      - generic:
+        - generic:
+          - heading [level=1]: Modeling Center
+          - paragraph: Define metrics, dimensions, and logical joins for your business brain.
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - img
+                - text: Active Connection
+            - generic:
+              - combobox [expanded]:
+                - generic: Select a connection to manage its model...
+                - img
+          - generic:
+            - generic:
+              - img
+            - heading [level=3]: Ready to Model
+            - paragraph: Choose a data source above to begin defining your business definitions and table relationships.
+  - button "Open Next.js Dev Tools" [ref=e6] [cursor=pointer]:
+    - img [ref=e7]
+  - alert
+  - listbox [active] [ref=e10]
+```

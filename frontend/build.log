@@ -1,0 +1,63 @@
+
+> my-v0-project@0.1.0 build
+> next build
+
+   Γû▓ Next.js 16.0.10 (Turbopack)
+   - Environments: .env
+
+   Creating an optimized production build ...
+
+> Build error occurred
+Error: Turbopack build failed with 3 errors:
+./app/onboarding/page.tsx:2:20
+Ecmascript file had an error
+  1 | // ... imports
+> 2 | import { useState, useEffect } from 'react';
+    |                    ^^^^^^^^^
+  3 | import { Card } from '@/components/ui/card';
+  4 | import { Button } from '@/components/ui/button';
+  5 | import { Input } from '@/components/ui/input';
+
+You're importing a component that needs `useEffect`. This React Hook only works in a Client Component. To fix, mark the file (or its parent) with the `"use client"` directive.
+
+ Learn more: https://nextjs.org/docs/app/api-reference/directives/use-client
+
+
+
+
+./app/onboarding/page.tsx:14:10
+Ecmascript file had an error
+  12 | import { Database, Brain, Lock, ArrowRight, Check, Sparkles, Loader2, RefreshCw } from 'lucide-react';
+  13 | import Link from 'next/link';
+> 14 | import { useRouter } from 'next/navigation';
+     |          ^^^^^^^^^
+  15 | import { useConnections } from '@/hooks/use-connections';
+  16 | import { toast } from 'sonner';
+  17 |
+
+You're importing a component that needs `useRouter`. This React Hook only works in a Client Component. To fix, mark the file (or its parent) with the `"use client"` directive.
+
+ Learn more: https://nextjs.org/docs/app/api-reference/directives/use-client
+
+
+
+
+./app/onboarding/page.tsx:2:10
+Ecmascript file had an error
+  1 | // ... imports
+> 2 | import { useState, useEffect } from 'react';
+    |          ^^^^^^^^
+  3 | import { Card } from '@/components/ui/card';
+  4 | import { Button } from '@/components/ui/button';
+  5 | import { Input } from '@/components/ui/input';
+
+You're importing a component that needs `useState`. This React Hook only works in a Client Component. To fix, mark the file (or its parent) with the `"use client"` directive.
+
+ Learn more: https://nextjs.org/docs/app/api-reference/directives/use-client
+
+
+
+
+    at <unknown> (./app/onboarding/page.tsx:2:20)
+    at <unknown> (./app/onboarding/page.tsx:14:10)
+    at <unknown> (./app/onboarding/page.tsx:2:10)
