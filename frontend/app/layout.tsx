@@ -12,6 +12,14 @@ import './globals.css'
 const _geist = Geist({ subsets: ["latin"] });
 const _geistMono = Geist_Mono({ subsets: ["latin"] });
 
+export const viewport: Viewport = {
+  themeColor: "#0f172a",
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+};
+
 export const metadata: Metadata = {
   title: 'InsightEngine AI - Business Intelligence Platform',
   description: 'Hybrid Business Intelligence platform combining SQL precision with AI intuition for data analysis',

@@ -162,7 +162,7 @@ export class HubSpotConnector extends BaseConnector {
         const alasql = await import('alasql');
         alasql.default.tables[tableName] = { data: allRows };
 
-        const result = alasql.default(sql);
+        const result = alasql.default(sql) as any[];
         const executionTime = Date.now() - startTime;
 
         const columns = result.length > 0 ? Object.keys(result[0]) : [];

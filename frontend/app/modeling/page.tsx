@@ -4,182 +4,90 @@ import { useState, useEffect } from 'react';
 import { SidebarLayout } from '@/components/sidebar-layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Plus, Database, Calculator, LayoutGrid, Trash2, ArrowRight, Info, Link2, Share2 } from 'lucide-react';
+import { Plus, Database, ArrowRight, Table as TableIcon, Code } from 'lucide-react';
 import { useConnections } from '@/hooks/use-connections';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useRouter } from 'next/navigation';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { toast } from 'sonner';
 
 export default function ModelingPage() {
-    // TODO: Get real userId
-    const userId = 'user_123';
-    const { connections, isLoading: connectionsLoading } = useConnections({ userId });
+    // TODO: Get real workspaceId context
+    const workspaceId = 'current_workspace';
+    const { connections, isLoading: connectionsLoading } = useConnections({ userId: 'user_123' }); // fallback
     const [selectedConnId, setSelectedConnId] = useState<string>('');
-    const [metrics, setMetrics] = useState<any[]>([]);
-    const [dimensions, setDimensions] = useState<any[]>([]);
-    const [relationships, setRelationships] = useState<any[]>([]);
-    const [isSubmitting, setIsSubmitting] = useState(false);
+    const [models, setModels] = useState<any[]>([]);
+    const [loadingModels, setLoadingModels] = useState(false);
+    const router = useRouter();
 
-    // New Metric Form State
-    const [newMetric, setNewMetric] = useState({
-        name: '',
-        label: '',
-        type: 'sum',
-        definition: '',
-        description: ''
-    });
-
-    // New Dimension Form State
-    const [newDimension, setNewDimension] = useState({
-        name: '',
-        label: '',
-        type: 'string',
-        columnName: '',
-        tableName: '',
-        description: ''
-    });
-
-    // New Relationship Form State
-    const [newRel, setNewRel] = useState({
-        fromTable: '',
-        fromColumn: '',
-        toTable: '',
-        toColumn: '',
-        type: 'one-to-many'
-    });
+    // New Model State
+    const [isCreateOpen, setIsCreateOpen] = useState(false);
+    const [newModelName, setNewModelName] = useState('');
+    const [newModelTable, setNewModelTable] = useState(''); // Simple table name for MVP
+    const [creating, setCreating] = useState(false);
 
     useEffect(() => {
         if (selectedConnId) {
-            fetchMetrics(selectedConnId);
-            fetchDimensions(selectedConnId);
-            fetchRelationships(selectedConnId);
+            fetchModels(selectedConnId);
+        } else {
+            setModels([]);
         }
     }, [selectedConnId]);
 
-    const fetchMetrics = async (connId: string) => {
-        const res = await fetch(`/api/semantic/metrics?connectionId=${connId}`);
-        const data = await res.json();
-        setMetrics(data);
-    };
-
-    const fetchDimensions = async (connId: string) => {
-        const res = await fetch(`/api/semantic/dimensions?connectionId=${connId}`);
-        const data = await res.json();
-        setDimensions(data);
-    };
-
-    const fetchRelationships = async (connId: string) => {
-        const res = await fetch(`/api/semantic/relationships?connectionId=${connId}`);
-        const data = await res.json();
-        setRelationships(data);
-    };
-
-    const handleCreateMetric = async () => {
-        if (!selectedConnId) return;
-        setIsSubmitting(true);
+    const fetchModels = async (connId: string) => {
+        setLoadingModels(true);
         try {
-            const res = await fetch('/api/semantic/metrics', {
+            // Fetch definitions linked to the workspace
+            // Ideally backend filters by connectionId too, but we can filter client side if needed
+            // The API /api/modeling/definitions takes query param workspaceId
+            const res = await fetch(`/api/modeling/definitions?workspaceId=${workspaceId}`);
+            if (res.ok) {
+                const data = await res.json();
+                // Filter by selected connection
+                const relevantModels = data.models.filter((m: any) => m.connectionId === connId);
+                setModels(relevantModels);
+            }
+        } catch (error) {
+            console.error('Failed to load models', error);
+            toast.error('Failed to load models');
+        } finally {
+            setLoadingModels(false);
+        }
+    };
+
+    const handleCreateModel = async () => {
+        if (!selectedConnId || !newModelName || !newModelTable) return;
+        setCreating(true);
+        try {
+            const res = await fetch('/api/modeling/definitions', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...newMetric, connectionId: selectedConnId })
+                body: JSON.stringify({
+                    name: newModelName,
+                    connectionId: selectedConnId,
+                    workspaceId: workspaceId,
+                    tableName: newModelTable, // Assuming direct table mapping for now
+                    description: 'Created via Modeling UI'
+                })
             });
-            if (res.ok) {
-                toast.success('Metric created');
-                fetchMetrics(selectedConnId);
-                setNewMetric({ name: '', label: '', type: 'sum', definition: '', description: '' });
-            }
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
 
-    const handleCreateDimension = async () => {
-        if (!selectedConnId) return;
-        setIsSubmitting(true);
-        try {
-            const res = await fetch('/api/semantic/dimensions', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...newDimension, connectionId: selectedConnId })
-            });
             if (res.ok) {
-                toast.success('Dimension created');
-                fetchDimensions(selectedConnId);
-                setNewDimension({ name: '', label: '', type: 'string', columnName: '', tableName: '', description: '' });
-            }
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const handleCreateRelationship = async () => {
-        if (!selectedConnId) return;
-        setIsSubmitting(true);
-        try {
-            const res = await fetch('/api/semantic/relationships', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ ...newRel, connectionId: selectedConnId })
-            });
-            if (res.ok) {
-                toast.success('Relationship created');
-                fetchRelationships(selectedConnId);
-                setNewRel({ fromTable: '', fromColumn: '', toTable: '', toColumn: '', type: 'one-to-many' });
-            }
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const handleDeleteMetric = async (id: string) => {
-        if (!confirm('Delete this metric? This cannot be undone.')) return;
-        setIsSubmitting(true);
-        try {
-            const res = await fetch(`/api/semantic/metrics/${id}`, { method: 'DELETE' });
-            if (res.ok) {
-                toast.success('Metric deleted');
-                fetchMetrics(selectedConnId);
+                toast.success('Model created');
+                setIsCreateOpen(false);
+                fetchModels(selectedConnId);
+                setNewModelName('');
+                setNewModelTable('');
             } else {
-                toast.error('Failed to delete metric');
+                const err = await res.json();
+                toast.error(err.error || 'Failed to create model');
             }
+        } catch (error) {
+            toast.error('Error creating model');
         } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const handleDeleteDimension = async (id: string) => {
-        if (!confirm('Delete this dimension? This cannot be undone.')) return;
-        setIsSubmitting(true);
-        try {
-            const res = await fetch(`/api/semantic/dimensions/${id}`, { method: 'DELETE' });
-            if (res.ok) {
-                toast.success('Dimension deleted');
-                fetchDimensions(selectedConnId);
-            } else {
-                toast.error('Failed to delete dimension');
-            }
-        } finally {
-            setIsSubmitting(false);
-        }
-    };
-
-    const handleDeleteRelationship = async (id: string) => {
-        if (!confirm('Delete this relationship? This cannot be undone.')) return;
-        setIsSubmitting(true);
-        try {
-            const res = await fetch(`/api/semantic/relationships/${id}`, { method: 'DELETE' });
-            if (res.ok) {
-                toast.success('Relationship deleted');
-                fetchRelationships(selectedConnId);
-            } else {
-                toast.error('Failed to delete relationship');
-            }
-        } finally {
-            setIsSubmitting(false);
+            setCreating(false);
         }
     };
 
@@ -190,7 +98,7 @@ export default function ModelingPage() {
                 <div className="border-b border-border bg-card px-8 py-6">
                     <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">Modeling Center</h1>
                     <p className="text-muted-foreground text-sm mt-0.5">
-                        Define metrics, dimensions, and logical joins for your business brain.
+                        Create semantic models from your tables. Add calculated metrics and formatting.
                     </p>
                 </div>
 
@@ -200,7 +108,7 @@ export default function ModelingPage() {
                         <CardHeader className="pb-3">
                             <CardTitle className="text-base flex items-center gap-2">
                                 <Database className="w-4 h-4 text-primary" />
-                                Active Connection
+                                Data Source
                             </CardTitle>
                         </CardHeader>
                         <CardContent>
@@ -208,14 +116,13 @@ export default function ModelingPage() {
                                 <Skeleton className="h-10 w-full rounded-lg" />
                             ) : (
                                 <Select value={selectedConnId} onValueChange={setSelectedConnId}>
-                                    <SelectTrigger className="bg-background/50 border-border/50 ring-offset-background transition-all focus:ring-1 focus:ring-primary">
-                                        <SelectValue placeholder="Select a connection to manage its model..." />
+                                    <SelectTrigger className="bg-background/50 border-border/50 ring-offset-background transition-all focus:ring-1 focus:ring-primary w-full md:w-[400px]">
+                                        <SelectValue placeholder="Select a connection..." />
                                     </SelectTrigger>
                                     <SelectContent>
                                         {connections.map(conn => (
-                                            <SelectItem key={conn.id} value={conn.id} className="focus:bg-primary/10 transition-colors">
-                                                {conn.name}
-                                                <span className="ml-2 text-[10px] opacity-50 uppercase tracking-widest">{conn.type}</span>
+                                            <SelectItem key={conn.id} value={conn.id}>
+                                                {conn.name} <span className="text-muted-foreground ml-2 text-xs">({conn.type})</span>
                                             </SelectItem>
                                         ))}
                                     </SelectContent>
@@ -224,263 +131,112 @@ export default function ModelingPage() {
                         </CardContent>
                     </Card>
 
-                    {!selectedConnId && (
-                        <div className="flex flex-col items-center justify-center py-32 text-center animate-in fade-in slide-in-from-bottom-4 duration-500">
-                            <div className="w-20 h-20 rounded-3xl bg-primary/5 flex items-center justify-center border border-primary/10 shadow-inner mb-6 rotate-3">
-                                <Database className="w-10 h-10 text-primary opacity-40 hover:scale-110 transition-transform cursor-pointer" />
-                            </div>
-                            <h3 className="text-xl font-semibold tracking-tight">Ready to Model</h3>
-                            <p className="text-muted-foreground max-w-[320px] mt-2 leading-relaxed">Choose a data source above to begin defining your business definitions and table relationships.</p>
+                    {/* Content Area */}
+                    {!selectedConnId ? (
+                        <div className="flex flex-col items-center justify-center py-20 text-center opacity-50">
+                            <Database className="w-16 h-16 text-muted-foreground mb-4" />
+                            <h3 className="text-lg font-semibold">Select a connection to view models</h3>
                         </div>
-                    )}
-
-                    {selectedConnId && (
-                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500">
-                            {/* Control Panel */}
-                            <div className="lg:col-span-4 space-y-6">
-                                <Tabs defaultValue="metric" className="w-full">
-                                    <TabsList className="grid grid-cols-3 w-full h-11 p-1 bg-muted/50 rounded-xl border border-border/50">
-                                        <TabsTrigger value="metric" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all text-xs font-medium">Metric</TabsTrigger>
-                                        <TabsTrigger value="dimension" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all text-xs font-medium">Dim</TabsTrigger>
-                                        <TabsTrigger value="rel" className="rounded-lg data-[state=active]:bg-primary data-[state=active]:text-primary-foreground data-[state=active]:shadow-sm transition-all text-xs font-medium">Join</TabsTrigger>
-                                    </TabsList>
-
-                                    <TabsContent value="metric" className="mt-4 ring-offset-background focus-visible:outline-none">
-                                        <Card className="border-primary/20 bg-primary/[0.02] overflow-hidden shadow-lg shadow-primary/5">
-                                            <div className="h-1 w-full bg-gradient-to-r from-primary to-transparent" />
-                                            <CardHeader className="pb-4">
-                                                <CardTitle className="text-base font-bold">New Metric</CardTitle>
-                                                <CardDescription className="text-xs">Aggregated calculations like Revenue or Conversion.</CardDescription>
-                                            </CardHeader>
-                                            <CardContent className="space-y-4">
-                                                <div className="space-y-1.5">
-                                                    <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Identifier</Label>
-                                                    <Input placeholder="total_profit" className="h-9 font-mono text-xs focus-visible:ring-1" value={newMetric.name} onChange={e => setNewMetric({ ...newMetric, name: e.target.value })} />
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Display Label</Label>
-                                                    <Input placeholder="Total Profit" className="h-9 focus-visible:ring-1" value={newMetric.label} onChange={e => setNewMetric({ ...newMetric, label: e.target.value })} />
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Operation</Label>
-                                                    <Select value={newMetric.type} onValueChange={v => setNewMetric({ ...newMetric, type: v })}>
-                                                        <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="sum">Sum</SelectItem>
-                                                            <SelectItem value="avg">Avg</SelectItem>
-                                                            <SelectItem value="count">Count</SelectItem>
-                                                            <SelectItem value="formula">SQL Formula</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Formula</Label>
-                                                    <Input placeholder="revenue - costs" className="h-9 font-mono text-xs focus-visible:ring-1" value={newMetric.definition} onChange={e => setNewMetric({ ...newMetric, definition: e.target.value })} />
-                                                </div>
-                                                <Button className="w-full mt-2 shadow-inner" size="sm" disabled={isSubmitting || !newMetric.name || !newMetric.definition} onClick={handleCreateMetric}>
-                                                    <Plus className="w-3.5 h-3.5 mr-2" /> Create Metric
-                                                </Button>
-                                            </CardContent>
-                                        </Card>
-                                    </TabsContent>
-
-                                    <TabsContent value="dimension" className="mt-4 ring-offset-background focus-visible:outline-none">
-                                        <Card className="border-secondary/20 bg-secondary/[0.02] overflow-hidden shadow-lg shadow-secondary/5">
-                                            <div className="h-1 w-full bg-gradient-to-r from-secondary to-transparent" />
-                                            <CardHeader className="pb-4">
-                                                <CardTitle className="text-base font-bold">New Dimension</CardTitle>
-                                                <CardDescription className="text-xs">Logical groups for filtering and breakdowns.</CardDescription>
-                                            </CardHeader>
-                                            <CardContent className="space-y-4">
-                                                <div className="space-y-1.5">
-                                                    <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Identifier</Label>
-                                                    <Input placeholder="geo_region" className="h-9 font-mono text-xs focus-visible:ring-1" value={newDimension.name} onChange={e => setNewDimension({ ...newDimension, name: e.target.value })} />
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Display Label</Label>
-                                                    <Input placeholder="Region" className="h-9 focus-visible:ring-1" value={newDimension.label} onChange={e => setNewDimension({ ...newDimension, label: e.target.value })} />
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <div className="space-y-1.5">
-                                                        <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Table</Label>
-                                                        <Input placeholder="users" className="h-9 font-mono text-xs focus-visible:ring-1" value={newDimension.tableName} onChange={e => setNewDimension({ ...newDimension, tableName: e.target.value })} />
-                                                    </div>
-                                                    <div className="space-y-1.5">
-                                                        <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Column</Label>
-                                                        <Input placeholder="region_name" className="h-9 font-mono text-xs focus-visible:ring-1" value={newDimension.columnName} onChange={e => setNewDimension({ ...newDimension, columnName: e.target.value })} />
-                                                    </div>
-                                                </div>
-                                                <Button className="w-full mt-2 shadow-inner variant-secondary" size="sm" disabled={isSubmitting || !newDimension.name || !newDimension.columnName} onClick={handleCreateDimension}>
-                                                    <Plus className="w-3.5 h-3.5 mr-2" /> Create Dimension
-                                                </Button>
-                                            </CardContent>
-                                        </Card>
-                                    </TabsContent>
-
-                                    <TabsContent value="rel" className="mt-4 ring-offset-background focus-visible:outline-none">
-                                        <Card className="border-amber-500/20 bg-amber-500/[0.02] overflow-hidden shadow-lg shadow-amber-500/5">
-                                            <div className="h-1 w-full bg-gradient-to-r from-amber-500 to-transparent" />
-                                            <CardHeader className="pb-4">
-                                                <CardTitle className="text-base font-bold text-amber-600">Virtual Join</CardTitle>
-                                                <CardDescription className="text-xs text-amber-600/70">Connect tables logically without SQL Foreign Keys.</CardDescription>
-                                            </CardHeader>
-                                            <CardContent className="space-y-4">
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <div className="space-y-1.5">
-                                                        <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">From Table</Label>
-                                                        <Input placeholder="orders" className="h-9 font-mono text-xs" value={newRel.fromTable} onChange={e => setNewRel({ ...newRel, fromTable: e.target.value })} />
-                                                    </div>
-                                                    <div className="space-y-1.5">
-                                                        <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Key</Label>
-                                                        <Input placeholder="user_id" className="h-9 font-mono text-xs" value={newRel.fromColumn} onChange={e => setNewRel({ ...newRel, fromColumn: e.target.value })} />
-                                                    </div>
-                                                </div>
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <div className="space-y-1.5">
-                                                        <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">To Table</Label>
-                                                        <Input placeholder="users" className="h-9 font-mono text-xs" value={newRel.toTable} onChange={e => setNewRel({ ...newRel, toTable: e.target.value })} />
-                                                    </div>
-                                                    <div className="space-y-1.5">
-                                                        <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Key</Label>
-                                                        <Input placeholder="id" className="h-9 font-mono text-xs" value={newRel.toColumn} onChange={e => setNewRel({ ...newRel, toColumn: e.target.value })} />
-                                                    </div>
-                                                </div>
-                                                <div className="space-y-1.5">
-                                                    <Label className="text-[10px] uppercase font-bold text-muted-foreground tracking-widest">Cardinality</Label>
-                                                    <Select value={newRel.type} onValueChange={v => setNewRel({ ...newRel, type: v as any })}>
-                                                        <SelectTrigger className="h-9 text-xs"><SelectValue /></SelectTrigger>
-                                                        <SelectContent>
-                                                            <SelectItem value="one-to-one">One to One (1:1)</SelectItem>
-                                                            <SelectItem value="one-to-many">One to Many (1:N)</SelectItem>
-                                                            <SelectItem value="many-to-many">Many to Many (N:M)</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
-                                                </div>
-                                                <Button className="w-full mt-2 bg-amber-600 hover:bg-amber-700 text-white shadow-inner" size="sm" disabled={isSubmitting || !newRel.fromTable || !newRel.toTable} onClick={handleCreateRelationship}>
-                                                    <Link2 className="w-3.5 h-3.5 mr-2" /> Save Relationship
-                                                </Button>
-                                            </CardContent>
-                                        </Card>
-                                    </TabsContent>
-                                </Tabs>
+                    ) : (
+                        <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
+                            <div className="flex justify-between items-center mb-6">
+                                <h2 className="text-xl font-bold flex items-center gap-2">
+                                    <TableIcon className="w-5 h-5 text-secondary" />
+                                    Semantic Models
+                                </h2>
+                                <Button onClick={() => setIsCreateOpen(true)}>
+                                    <Plus className="w-4 h-4 mr-2" />
+                                    New Model
+                                </Button>
                             </div>
 
-                            {/* Viewer Panel */}
-                            <div className="lg:col-span-8 space-y-6">
-                                <Tabs defaultValue="metrics" className="w-full">
-                                    <TabsList className="bg-transparent h-10 border-b border-border/50 w-full justify-start rounded-none px-0 gap-6">
-                                        <TabsTrigger value="metrics" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground rounded-none px-0 h-10 text-sm font-semibold transition-all">
-                                            Metrics <Badge variant="secondary" className="ml-2 bg-primary/10 text-primary border-none">{metrics.length}</Badge>
-                                        </TabsTrigger>
-                                        <TabsTrigger value="dimensions" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground rounded-none px-0 h-10 text-sm font-semibold transition-all">
-                                            Dimensions <Badge variant="secondary" className="ml-2 bg-primary/10 text-primary border-none">{dimensions.length}</Badge>
-                                        </TabsTrigger>
-                                        <TabsTrigger value="rels" className="data-[state=active]:bg-transparent data-[state=active]:border-b-2 data-[state=active]:border-primary data-[state=active]:text-foreground rounded-none px-0 h-10 text-sm font-semibold transition-all">
-                                            Visual Schema <Badge variant="secondary" className="ml-2 bg-primary/10 text-primary border-none">{relationships.length}</Badge>
-                                        </TabsTrigger>
-                                    </TabsList>
-
-                                    <TabsContent value="metrics" className="mt-6 animate-in slide-in-from-left-2 duration-300">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                            {metrics.length === 0 ? (
-                                                <EmptyState icon={<Calculator className="w-10 h-10 opacity-20" />} title="Empty Metrics" description="Define how your business KPIs are calculated." />
-                                            ) : metrics.map(m => (
-                                                <ModelingCard key={m.id} badge={m.type} title={m.label} sub={m.name} formula={m.definition} color="primary" onDelete={() => handleDeleteMetric(m.id)} />
-                                            ))}
-                                        </div>
-                                    </TabsContent>
-
-                                    <TabsContent value="dimensions" className="mt-6 animate-in slide-in-from-left-2 duration-300">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                            {dimensions.length === 0 ? (
-                                                <EmptyState icon={<LayoutGrid className="w-10 h-10 opacity-20" />} title="Empty Dimensions" description="Identify categories for analysis." />
-                                            ) : dimensions.map(d => (
-                                                <ModelingCard key={d.id} badge={d.type} title={d.label} sub={d.name} detail={`${d.tableName}.${d.columnName}`} color="secondary" onDelete={() => handleDeleteDimension(d.id)} />
-                                            ))}
-                                        </div>
-                                    </TabsContent>
-
-                                    <TabsContent value="rels" className="mt-6 animate-in slide-in-from-left-2 duration-300">
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                            {relationships.length === 0 ? (
-                                                <EmptyState icon={<Link2 className="w-10 h-10 opacity-20" />} title="No joins defined" description="Connect tables to enable automatic JOIN generation." />
-                                            ) : relationships.map(r => (
-                                                <Card key={r.id} className="group hover:border-amber-500/50 transition-all border-border shadow-md shadow-black/5 bg-card">
-                                                    <CardContent className="p-5">
-                                                        <div className="flex justify-between items-start mb-4">
-                                                            <div className="bg-amber-500/10 text-amber-600 text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-tighter border border-amber-500/20">{r.type}</div>
-                                                            <Button variant="ghost" size="icon" onClick={() => handleDeleteRelationship(r.id)} className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-all text-destructive hover:bg-destructive/10"><Trash2 className="w-3.5 h-3.5" /></Button>
-                                                        </div>
-                                                        <div className="flex items-center justify-between gap-3 p-3 bg-muted/30 rounded-xl border border-border/50">
-                                                            <div className="flex flex-col items-center gap-1 flex-1">
-                                                                <span className="text-[10px] text-muted-foreground uppercase font-mono">{r.fromTable}</span>
-                                                                <span className="text-xs font-bold font-mono tracking-tight">{r.fromColumn}</span>
-                                                            </div>
-                                                            <div className="flex flex-col items-center">
-                                                                <div className="w-8 h-[1px] bg-amber-500/30 relative">
-                                                                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-4 h-4 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-                                                                        <Link2 className="w-2.5 h-2.5 text-amber-600" />
-                                                                    </div>
-                                                                </div>
-                                                            </div>
-                                                            <div className="flex flex-col items-center gap-1 flex-1">
-                                                                <span className="text-[10px] text-muted-foreground uppercase font-mono">{r.toTable}</span>
-                                                                <span className="text-xs font-bold font-mono tracking-tight">{r.toColumn}</span>
-                                                            </div>
-                                                        </div>
-                                                    </CardContent>
-                                                </Card>
-                                            ))}
-                                        </div>
-                                    </TabsContent>
-                                </Tabs>
-                            </div>
+                            {loadingModels ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    <Skeleton className="h-40 rounded-xl" />
+                                    <Skeleton className="h-40 rounded-xl" />
+                                </div>
+                            ) : models.length === 0 ? (
+                                <Card className="border-dashed border-2 border-muted bg-muted/10">
+                                    <CardContent className="flex flex-col items-center justify-center py-12">
+                                        <Code className="w-12 h-12 text-muted-foreground mb-4 opacity-50" />
+                                        <h3 className="text-lg font-medium">No Models Defined</h3>
+                                        <p className="text-muted-foreground text-sm max-w-sm text-center mt-2 mb-6">
+                                            Start by creating a model from a database table. This allows you to define custom metrics and logic.
+                                        </p>
+                                        <Button variant="outline" onClick={() => setIsCreateOpen(true)}>Create First Model</Button>
+                                    </CardContent>
+                                </Card>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                    {models.map((model: any) => (
+                                        <Card
+                                            key={model.id}
+                                            className="group hover:border-primary/50 transition-all cursor-pointer shadow-sm hover:shadow-md bg-card"
+                                            onClick={() => router.push(`/modeling/${model.id}`)}
+                                        >
+                                            <CardHeader>
+                                                <div className="flex justify-between items-start">
+                                                    <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary mb-3 group-hover:scale-110 transition-transform">
+                                                        <TableIcon className="w-5 h-5" />
+                                                    </div>
+                                                    <ArrowRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                                                </div>
+                                                <CardTitle className="text-lg">{model.name}</CardTitle>
+                                                <CardDescription className="line-clamp-2">
+                                                    Table: <span className="font-mono text-xs bg-muted px-1 rounded">{model.tableName || 'SQL Query'}</span>
+                                                </CardDescription>
+                                            </CardHeader>
+                                            <CardContent>
+                                                <div className="flex gap-4 text-xs text-muted-foreground">
+                                                    <div className="flex items-center gap-1">
+                                                        <span className="font-bold text-foreground">{model.virtualMetrics?.length || 0}</span> Metrics
+                                                    </div>
+                                                    {/* Add column count if available */}
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                </div>
+                            )}
                         </div>
                     )}
                 </div>
             </div>
+
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Create Semantic Model</DialogTitle>
+                        <DialogDescription>Link a database table to create a robust data model.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label>Model Name</Label>
+                            <Input
+                                placeholder="e.g. Sales Transactions"
+                                value={newModelName}
+                                onChange={e => setNewModelName(e.target.value)}
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Source Table</Label>
+                            <Input
+                                placeholder="e.g. public.sales"
+                                value={newModelTable}
+                                onChange={e => setNewModelTable(e.target.value)}
+                            />
+                            <p className="text-xs text-muted-foreground">Currently supporting direct table mapping.</p>
+                            {/* TODO: Add Table Selector Fetching from DB Schema */}
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsCreateOpen(false)}>Cancel</Button>
+                        <Button onClick={handleCreateModel} disabled={creating || !newModelName || !newModelTable}>
+                            {creating ? 'Creating...' : 'Create Model'}
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </SidebarLayout>
-    );
-}
-
-function ModelingCard({ badge, title, sub, formula, detail, color, onDelete }: { badge: string, title: string, sub: string, formula?: string, detail?: string, color: 'primary' | 'secondary', onDelete?: () => void }) {
-    const isPrimary = color === 'primary';
-    return (
-        <Card className={`group hover:scale-[1.02] transition-all border-border shadow-md shadow-black/5 bg-card relative overflow-hidden active:scale-100`}>
-            <div className={`absolute left-0 top-0 bottom-0 w-1 ${isPrimary ? 'bg-primary' : 'bg-secondary'}`} />
-            <CardHeader className="p-5 pb-3">
-                <div className="flex justify-between items-start">
-                    <div className="space-y-1">
-                        <Badge variant="secondary" className={`text-[9px] uppercase font-bold py-0 h-4 border-none shadow-sm ${isPrimary ? 'bg-primary/10 text-primary' : 'bg-secondary/10 text-secondary'}`}>{badge}</Badge>
-                        <CardTitle className="text-base font-bold tracking-tight mt-1">{title}</CardTitle>
-                        <CardDescription className="text-xs font-mono opacity-60">{sub}</CardDescription>
-                    </div>
-                    {onDelete && <Button variant="ghost" size="icon" onClick={onDelete} className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-all text-destructive hover:bg-destructive/5"><Trash2 className="w-3.5 h-3.5" /></Button>}
-                </div>
-            </CardHeader>
-            <CardContent className="px-5 pb-5">
-                {formula ? (
-                    <div className="bg-muted/30 p-2.5 rounded-lg text-[11px] font-mono border border-border/50 text-muted-foreground">
-                        <span className={isPrimary ? 'text-primary/70' : 'text-secondary/70'}>{badge.toUpperCase()}(</span>
-                        {formula}
-                        <span className={isPrimary ? 'text-primary/70' : 'text-secondary/70'}>)</span>
-                    </div>
-                ) : (
-                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground bg-muted/30 p-2 rounded-lg border border-border/50">
-                        <Database className="w-3 h-3 opacity-40 text-secondary" /> {detail}
-                    </div>
-                )}
-            </CardContent>
-        </Card>
-    );
-}
-
-function EmptyState({ icon, title, description }: { icon: React.ReactNode, title: string, description: string }) {
-    return (
-        <div className="col-span-full py-20 flex flex-col items-center justify-center bg-card/40 rounded-3xl border border-dashed border-border/60">
-            {icon}
-            <h4 className="mt-4 font-bold text-base tracking-tight">{title}</h4>
-            <p className="text-muted-foreground text-xs mt-1 px-8 text-center leading-relaxed opacity-60">{description}</p>
-        </div>
     );
 }

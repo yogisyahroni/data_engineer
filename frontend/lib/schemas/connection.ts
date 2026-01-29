@@ -17,6 +17,7 @@ export const CreateConnectionSchema = z.object({
     username: z.string().optional(),
     password: z.string().optional(),
     userId: z.string().optional(),
+    ssl: z.boolean().default(false),
 });
 
 export const UpdateConnectionSchema = CreateConnectionSchema.partial();

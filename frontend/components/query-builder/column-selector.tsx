@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import {
     DndContext,
     closestCenter,
@@ -17,6 +18,29 @@ import {
     useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { ColumnSelection, AggregationFunction, ColumnSchema } from '@/lib/query-builder/types';
+import { GripVertical, X } from 'lucide-react';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+
+const AGGREGATION_OPTIONS: { label: string; value: AggregationFunction }[] = [
+    { label: 'Count', value: 'COUNT' },
+    { label: 'Sum', value: 'SUM' },
+    { label: 'Avg', value: 'AVG' },
+    { label: 'Min', value: 'MIN' },
+    { label: 'Max', value: 'MAX' },
+];
+
+interface ColumnSelectorProps {
+    connectionId: string;
+    tableName: string;
+    selectedColumns: ColumnSelection[];
+    onColumnsChange: (columns: ColumnSelection[]) => void;
+}
 
 // Sortable Item Component
 function SortableColumnItem({

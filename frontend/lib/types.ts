@@ -77,6 +77,23 @@ export interface SavedQuery {
   createdAt: Date;
   updatedAt: Date;
   lastExecutedAt?: Date;
+
+  // Phase 25: Governance
+  certificationStatus?: 'draft' | 'verified' | 'deprecated';
+  certifiedBy?: string;
+  businessGlossary?: string;
+}
+
+export interface BusinessMetric {
+  id: string;
+  name: string;
+  description: string;
+  formula: string;
+  ownerId: string;
+  status: 'draft' | 'verified' | 'deprecated';
+  tags: string[];
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 // Story & Pages (Power BI/Tableau style)

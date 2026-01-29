@@ -1,28 +1,63 @@
-import { dashboardRepo } from '@/lib/repositories/dashboard-repo';
+import { Dashboard, DashboardCard, VisualizationConfig } from '@/lib/types';
 
-export class DashboardService {
-    async createDashboard(userId: string, data: any) {
-        return dashboardRepo.create({
-            ...data,
-            userId,
-        } as any);
-    }
-
-    async getDashboards(userId: string) {
-        return dashboardRepo.findAllByUserId(userId);
-    }
-
-    async getDashboard(id: string) {
-        return dashboardRepo.findById(id);
-    }
-
-    async updateDashboard(id: string, data: any) {
-        return dashboardRepo.update(id, data);
-    }
-
-    async deleteDashboard(id: string) {
-        return dashboardRepo.delete(id);
-    }
+export interface CreateDashboardInput {
+    name: string;
+    description?: string;
+    collectionId: string;
+    tags?: string[];
 }
 
-export const dashboardService = new DashboardService();
+export interface UpdateDashboardInput {
+    name?: string;
+    description?: string;
+    isPublic?: boolean;
+    collectionId?: string;
+    tags?: string[];
+    filters?: any[];
+    cards?: DashboardCard[]; // Full sync of layout
+}
+
+export const dashboardService = {
+    async getAll(): Promise<Dashboard[]> {
+        const response = await fetch('/api/dashboards');
+        if (!response.ok) throw new Error('Failed to fetch dashboards');
+        const json = await response.json();
+        return json.data;
+    },
+
+    async getById(id: string): Promise<Dashboard> {
+        const response = await fetch(`/api/dashboards/${id}`);
+        if (!response.ok) throw new Error('Failed to fetch dashboard');
+        const json = await response.json();
+        return json.data;
+    },
+
+    async create(input: CreateDashboardInput): Promise<Dashboard> {
+        const response = await fetch('/api/dashboards', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(input),
+        });
+        if (!response.ok) throw new Error('Failed to create dashboard');
+        const json = await response.json();
+        return json.data;
+    },
+
+    async update(id: string, updates: UpdateDashboardInput): Promise<Dashboard> {
+        const response = await fetch(`/api/dashboards/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updates),
+        });
+        if (!response.ok) throw new Error('Failed to update dashboard');
+        const json = await response.json();
+        return json.data;
+    },
+
+    async delete(id: string): Promise<void> {
+        const response = await fetch(`/api/dashboards/${id}`, {
+            method: 'DELETE',
+        });
+        if (!response.ok) throw new Error('Failed to delete dashboard');
+    }
+};

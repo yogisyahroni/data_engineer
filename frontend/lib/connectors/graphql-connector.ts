@@ -176,10 +176,10 @@ export class GraphQLConnector extends BaseConnector {
         const alasql = await import('alasql');
         alasql.default.tables[tableName] = { data };
 
-        const result = alasql.default(sql);
+        const result = alasql.default(sql) as any[];
         const executionTime = Date.now() - startTime;
 
-        const columns = result.length > 0 ? Object.keys(result[0]) : [];
+        const columns = (result as any[]).length > 0 ? Object.keys((result as any[])[0]) : [];
 
         return {
             columns,

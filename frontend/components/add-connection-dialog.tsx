@@ -31,6 +31,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Plus } from 'lucide-react';
 import { toast } from 'sonner';
 
@@ -48,6 +49,7 @@ export function AddConnectionDialog() {
             database: '',
             username: 'postgres',
             password: '',
+            ssl: false,
         },
     });
 
@@ -191,6 +193,28 @@ export function AddConnectionDialog() {
                                 )}
                             />
                         </div>
+                        <FormField
+                            control={form.control}
+                            name="ssl"
+                            render={({ field }) => (
+                                <FormItem className="flex flex-row items-start space-x-3 space-y-0 rounded-md border p-4">
+                                    <FormControl>
+                                        <Checkbox
+                                            checked={field.value as boolean}
+                                            onCheckedChange={field.onChange}
+                                        />
+                                    </FormControl>
+                                    <div className="space-y-1 leading-none">
+                                        <FormLabel>
+                                            Use SSL Connection
+                                        </FormLabel>
+                                        <DialogDescription>
+                                            Enable strictly for cloud providers like Supabase, Neon, or AWS RDS.
+                                        </DialogDescription>
+                                    </div>
+                                </FormItem>
+                            )}
+                        />
                         <DialogFooter>
                             <Button type="submit">Save Connection</Button>
                         </DialogFooter>

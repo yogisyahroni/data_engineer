@@ -4,7 +4,7 @@ import { connectionService } from '@/lib/services/connection-service';
 import { SecurityContext } from '@/lib/security/rls-context';
 
 export interface AuditEvent {
-    action: 'QUERY_EXECUTE' | 'AGGREGATION' | 'EXPORT' | 'LOGIN' | 'SCHEMA_CHANGE';
+    action: 'QUERY_EXECUTE' | 'AGGREGATION' | 'EXPORT' | 'LOGIN' | 'SCHEMA_CHANGE' | 'AGENT_RUN';
     resource: string; // e.g. Table Name or Query ID
     details?: string; // e.g. The SQL executed
     status: 'SUCCESS' | 'FAILURE';

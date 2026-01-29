@@ -1,0 +1,283 @@
+.next/dev/types/validator.ts(360,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/canvas/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/canvas/[id]">'.
+  Types of property 'GET' are incompatible.
+    Type '(req: Request, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ canvas: { widgets: { id: string; canvasId: string; type: string; x: number; ... 6 more ...; updatedAt: Date; }[]; creator: { ...; }; } & { ...; }; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/dev/types/validator.ts(369,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/canvas/[id]/widgets/[widgetId]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/canvas/[id]/widgets/[widgetId]">'.
+  Types of property 'PUT' are incompatible.
+    Type '(req: Request, { params }: { params: { id: string; widgetId: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ widget: { id: string; canvasId: string; type: string; x: number; ... 6 more ...; updatedAt: Date; }; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; widgetId: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; widgetId: string; }>; }' is not assignable to type '{ params: { id: string; widgetId: string; }; }'.
+          Types of property 'params' are incompatible.
+            Type 'Promise<{ id: string; widgetId: string; }>' is missing the following properties from type '{ id: string; widgetId: string; }': id, widgetId
+.next/dev/types/validator.ts(378,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/canvas/[id]/widgets/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/canvas/[id]/widgets">'.
+  Types of property 'POST' are incompatible.
+    Type '(req: Request, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ widget: { id: string; canvasId: string; type: string; x: number; y: number; width: number; ... 4 more ...; updatedAt: Date; }; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/dev/types/validator.ts(486,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/dataflows/[id]/run/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/dataflows/[id]/run">'.
+  Types of property 'POST' are incompatible.
+    Type '(req: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ success: boolean; runId: string; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/dev/types/validator.ts(567,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/modeling/definitions/[id]/metrics/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/modeling/definitions/[id]/metrics">'.
+  Types of property 'GET' are incompatible.
+    Type '(req: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ success: boolean; metrics: { id: string; name: string; description: string | null; ... 4 more ...; updatedAt: Date; }[]; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/dev/types/validator.ts(576,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/modeling/definitions/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/modeling/definitions/[id]">'.
+  Types of property 'GET' are incompatible.
+    Type '(req: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ success: boolean; model: { connection: { type: string; name: string; }; virtualMetrics: { ...; }[]; } & { ...; }; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/dev/types/validator.ts(594,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/modeling/metrics/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/modeling/metrics/[id]">'.
+  Types of property 'PUT' are incompatible.
+    Type '(req: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ success: boolean; metric: { id: string; name: string; description: string | null; expression: string; format: string | null; modelId: string; createdAt: Date; updatedAt: Date; }; }> | NextResponse<...>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/dev/types/validator.ts(612,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/queries/saved/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/queries/saved/[id]">'.
+  Types of property 'GET' are incompatible.
+    Type '(req: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ success: boolean; data: { user: { name: string; }; } & { id: string; ... 11 more ...; updatedAt: Date; }; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/dev/types/validator.ts(621,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/queries/saved/[id]/versions/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/queries/saved/[id]/versions">'.
+  Types of property 'GET' are incompatible.
+    Type '(req: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ success: boolean; versions: ({ user: { name: string; }; } & { id: string; ... 6 more ...; createdAt: Date; })[]; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/dev/types/validator.ts(666,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/security/policies/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/security/policies/[id]">'.
+  Types of property 'DELETE' are incompatible.
+    Type '(req: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<unknown>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/dev/types/validator.ts(684,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/semantic/dimensions/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/semantic/dimensions/[id]">'.
+  Types of property 'PATCH' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ id: string; name: string; label: string; description: string | null; type: string; columnName: string; tableName: string; ... 4 more ...; updatedAt: Date; }> | NextResponse<...>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/dev/types/validator.ts(702,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/semantic/metrics/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/semantic/metrics/[id]">'.
+  Types of property 'PATCH' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ id: string; name: string; label: string; description: string | null; type: string; definition: string; connectionId: string; collectionId: string | null; userId: string; createdAt: Date; updatedAt: Date; }> | NextResponse<...>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/dev/types/validator.ts(720,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/semantic/relationships/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/semantic/relationships/[id]">'.
+  Types of property 'DELETE' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ success: boolean; }> | NextResponse<{ error: any; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/dev/types/validator.ts(738,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/settings/keys/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/settings/keys/[id]">'.
+  Types of property 'DELETE' are incompatible.
+    Type '(req: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ success: boolean; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/dev/types/validator.ts(765,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/share/[token]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/share/[token]">'.
+  Types of property 'GET' are incompatible.
+    Type '(req: NextRequest, { params }: { params: { token: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ success: boolean; type: string; data: { id: string; name: string; ... 10 more ...; updatedAt: Date; } | ({ ...; } & { ...; }) | null; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ token: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ token: string; }>; }' is not assignable to type '{ params: { token: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'token' is missing in type 'Promise<{ token: string; }>' but required in type '{ token: string; }'.
+.next/dev/types/validator.ts(801,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/workspaces/[id]/members/[memberId]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/workspaces/[id]/members/[memberId]">'.
+  Types of property 'PATCH' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; memberId: string; }; }) => Promise<NextResponse<{ id: string; workspaceId: string; userId: string; role: Role; invitedBy: string | null; invitedAt: Date; }> | NextResponse<...>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; memberId: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; memberId: string; }>; }' is not assignable to type '{ params: { id: string; memberId: string; }; }'.
+          Types of property 'params' are incompatible.
+            Type 'Promise<{ id: string; memberId: string; }>' is missing the following properties from type '{ id: string; memberId: string; }': id, memberId
+.next/dev/types/validator.ts(810,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/workspaces/[id]/members/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/workspaces/[id]/members">'.
+  Types of property 'GET' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<({ user: { id: string; name: string; email: string; }; } & { id: string; workspaceId: string; userId: string; role: Role; invitedBy: string | null; invitedAt: Date; })[]> | NextResponse<...>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/dev/types/validator.ts(819,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/workspaces/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/workspaces/[id]">'.
+  Types of property 'GET' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ owner: { id: string; name: string; email: string; }; members: ({ user: { id: string; name: string; email: string; }; } & { ...; })[]; } & { ...; }> | NextResponse<...>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(423,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/canvas/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/canvas/[id]">'.
+  Types of property 'GET' are incompatible.
+    Type '(req: Request, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ canvas: { widgets: { id: string; canvasId: string; type: string; x: number; ... 6 more ...; updatedAt: Date; }[]; creator: { ...; }; } & { ...; }; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(432,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/canvas/[id]/widgets/[widgetId]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/canvas/[id]/widgets/[widgetId]">'.
+  Types of property 'PUT' are incompatible.
+    Type '(req: Request, { params }: { params: { id: string; widgetId: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ widget: { id: string; canvasId: string; type: string; x: number; ... 6 more ...; updatedAt: Date; }; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; widgetId: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; widgetId: string; }>; }' is not assignable to type '{ params: { id: string; widgetId: string; }; }'.
+          Types of property 'params' are incompatible.
+            Type 'Promise<{ id: string; widgetId: string; }>' is missing the following properties from type '{ id: string; widgetId: string; }': id, widgetId
+.next/types/validator.ts(441,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/canvas/[id]/widgets/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/canvas/[id]/widgets">'.
+  Types of property 'POST' are incompatible.
+    Type '(req: Request, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ widget: { id: string; canvasId: string; type: string; x: number; y: number; width: number; ... 4 more ...; updatedAt: Date; }; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(549,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/dataflows/[id]/run/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/dataflows/[id]/run">'.
+  Types of property 'POST' are incompatible.
+    Type '(req: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ success: boolean; runId: string; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(630,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/modeling/definitions/[id]/metrics/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/modeling/definitions/[id]/metrics">'.
+  Types of property 'GET' are incompatible.
+    Type '(req: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ success: boolean; metrics: { id: string; name: string; description: string | null; ... 4 more ...; updatedAt: Date; }[]; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(639,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/modeling/definitions/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/modeling/definitions/[id]">'.
+  Types of property 'GET' are incompatible.
+    Type '(req: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ success: boolean; model: { connection: { type: string; name: string; }; virtualMetrics: { ...; }[]; } & { ...; }; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(657,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/modeling/metrics/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/modeling/metrics/[id]">'.
+  Types of property 'PUT' are incompatible.
+    Type '(req: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ success: boolean; metric: { id: string; name: string; description: string | null; expression: string; format: string | null; modelId: string; createdAt: Date; updatedAt: Date; }; }> | NextResponse<...>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(675,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/queries/saved/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/queries/saved/[id]">'.
+  Types of property 'GET' are incompatible.
+    Type '(req: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ success: boolean; data: { user: { name: string; }; } & { id: string; ... 11 more ...; updatedAt: Date; }; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(684,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/queries/saved/[id]/versions/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/queries/saved/[id]/versions">'.
+  Types of property 'GET' are incompatible.
+    Type '(req: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ success: boolean; versions: ({ user: { name: string; }; } & { id: string; ... 6 more ...; createdAt: Date; })[]; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(729,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/security/policies/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/security/policies/[id]">'.
+  Types of property 'DELETE' are incompatible.
+    Type '(req: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<unknown>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(747,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/semantic/dimensions/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/semantic/dimensions/[id]">'.
+  Types of property 'PATCH' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ id: string; name: string; label: string; description: string | null; type: string; columnName: string; tableName: string; ... 4 more ...; updatedAt: Date; }> | NextResponse<...>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(765,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/semantic/metrics/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/semantic/metrics/[id]">'.
+  Types of property 'PATCH' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ id: string; name: string; label: string; description: string | null; type: string; definition: string; connectionId: string; collectionId: string | null; userId: string; createdAt: Date; updatedAt: Date; }> | NextResponse<...>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(783,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/semantic/relationships/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/semantic/relationships/[id]">'.
+  Types of property 'DELETE' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ success: boolean; }> | NextResponse<{ error: any; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(801,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/settings/keys/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/settings/keys/[id]">'.
+  Types of property 'DELETE' are incompatible.
+    Type '(req: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ success: boolean; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(828,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/share/[token]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/share/[token]">'.
+  Types of property 'GET' are incompatible.
+    Type '(req: NextRequest, { params }: { params: { token: string; }; }) => Promise<NextResponse<{ error: string; }> | NextResponse<{ success: boolean; type: string; data: { id: string; name: string; ... 10 more ...; updatedAt: Date; } | ({ ...; } & { ...; }) | null; }>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ token: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ token: string; }>; }' is not assignable to type '{ params: { token: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'token' is missing in type 'Promise<{ token: string; }>' but required in type '{ token: string; }'.
+.next/types/validator.ts(864,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/workspaces/[id]/members/[memberId]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/workspaces/[id]/members/[memberId]">'.
+  Types of property 'PATCH' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; memberId: string; }; }) => Promise<NextResponse<{ id: string; workspaceId: string; userId: string; role: Role; invitedBy: string | null; invitedAt: Date; }> | NextResponse<...>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; memberId: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; memberId: string; }>; }' is not assignable to type '{ params: { id: string; memberId: string; }; }'.
+          Types of property 'params' are incompatible.
+            Type 'Promise<{ id: string; memberId: string; }>' is missing the following properties from type '{ id: string; memberId: string; }': id, memberId
+.next/types/validator.ts(873,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/workspaces/[id]/members/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/workspaces/[id]/members">'.
+  Types of property 'GET' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<({ user: { id: string; name: string; email: string; }; } & { id: string; workspaceId: string; userId: string; role: Role; invitedBy: string | null; invitedAt: Date; })[]> | NextResponse<...>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+.next/types/validator.ts(882,31): error TS2344: Type 'typeof import("E:/antigraviti google/inside engine/insight-engine-ai-ui/frontend/app/api/workspaces/[id]/route")' does not satisfy the constraint 'RouteHandlerConfig<"/api/workspaces/[id]">'.
+  Types of property 'GET' are incompatible.
+    Type '(request: NextRequest, { params }: { params: { id: string; }; }) => Promise<NextResponse<{ owner: { id: string; name: string; email: string; }; members: ({ user: { id: string; name: string; email: string; }; } & { ...; })[]; } & { ...; }> | NextResponse<...>>' is not assignable to type '(request: NextRequest, context: { params: Promise<{ id: string; }>; }) => void | Response | Promise<void | Response>'.
+      Types of parameters '__1' and 'context' are incompatible.
+        Type '{ params: Promise<{ id: string; }>; }' is not assignable to type '{ params: { id: string; }; }'.
+          Types of property 'params' are incompatible.
+            Property 'id' is missing in type 'Promise<{ id: string; }>' but required in type '{ id: string; }'.
+app/api/activity/route.ts(16,47): error TS2353: Object literal may only specify known properties, and 'image' does not exist in type 'UserSelect<DefaultArgs>'.
+app/api/comments/route.ts(22,47): error TS2353: Object literal may only specify known properties, and 'image' does not exist in type 'UserSelect<DefaultArgs>'.
+app/api/comments/route.ts(24,62): error TS2353: Object literal may only specify known properties, and 'image' does not exist in type 'UserSelect<DefaultArgs>'.
+app/api/comments/route.ts(58,47): error TS2353: Object literal may only specify known properties, and 'image' does not exist in type 'UserSelect<DefaultArgs>'.
+app/api/dashboards/[id]/cards/route.ts(17,82): error TS2322: Type 'string' is not assignable to type 'string[]'.
+app/api/dashboards/[id]/cards/route.ts(24,75): error TS2322: Type 'string' is not assignable to type 'string[]'.
+app/api/dashboards/[id]/cards/route.ts(31,76): error TS2322: Type 'string' is not assignable to type 'string[]'.
+app/api/dashboards/[id]/cards/route.ts(73,15): error TS2741: Property 'type' is missing in type '{ id: string; dashboardId: string; queryId: any; title: any; position: any; visualizationConfig: any; }' but required in type 'DashboardCard'.
+app/api/dashboards/[id]/route.ts(51,21): error TS2561: Object literal may only specify known properties, but 'collectionId' does not exist in type 'DashboardUpdateInput'. Did you mean to write 'collection'?
+app/api/engine/aggregate/route.ts(46,13): error TS2739: Type '{ segment: string; }' is missing the following properties from type 'SecurityContext': userId, tenantId, role
+app/api/queries/saved/[id]/route.ts(49,21): error TS2322: Type 'JsonValue' is not assignable to type 'NullableJsonNullValueInput | InputJsonValue | undefined'.
+  Type 'null' is not assignable to type 'NullableJsonNullValueInput | InputJsonValue | undefined'.
+app/api/queries/saved/[id]/versions/route.ts(49,17): error TS2322: Type 'JsonValue' is not assignable to type 'NullableJsonNullValueInput | InputJsonValue | undefined'.
+  Type 'null' is not assignable to type 'NullableJsonNullValueInput | InputJsonValue | undefined'.
+app/api/scheduler/check-alerts/route.ts(46,21): error TS2353: Object literal may only specify known properties, and 'options' does not exist in type 'ConnectionConfig'.
+app/apps/builder/[id]/pages-tab.tsx(29,13): error TS2339: Property 'workspace' does not exist on type '{ workspaceId: string; role: string; }'.
+app/apps/builder/[id]/pages-tab.tsx(135,95): error TS2322: Type '"warning"' is not assignable to type '"default" | "destructive" | null | undefined'.
+app/apps/page.tsx(31,13): error TS2339: Property 'workspace' does not exist on type '{ workspaceId: string; role: string; }'.
+app/canvas/[id]/page.tsx(24,10): error TS2305: Module '"usehooks-ts"' has no exported member 'useDebounce'.
+app/canvas/page.tsx(47,13): error TS2339: Property 'workspace' does not exist on type '{ workspaceId: string; role: string; }'.
+app/dashboards/page.tsx(177,42): error TS2345: Argument of type '{ name: string; description: string; }' is not assignable to parameter of type 'CreateDashboardInput'.
+  Property 'collectionId' is missing in type '{ name: string; description: string; }' but required in type 'CreateDashboardInput'.
+components/dashboard/add-to-dashboard-dialog.tsx(107,17): error TS2322: Type '(DashboardCard | { id: string; dashboardId: string; queryId: string; position: { x: number; y: number; w: number; h: number; }; visualizationConfig: { type: VisualizationType; ... 19 more ...; sankeyOrient?: "horizontal" | ... 1 more ... | undefined; }; })[]' is not assignable to type 'DashboardCard[]'.
+  Type 'DashboardCard | { id: string; dashboardId: string; queryId: string; position: { x: number; y: number; w: number; h: number; }; visualizationConfig: { type: VisualizationType; ... 19 more ...; sankeyOrient?: "horizontal" | ... 1 more ... | undefined; }; }' is not assignable to type 'DashboardCard'.
+    Type '{ id: string; dashboardId: string; queryId: string; position: { x: number; y: number; w: number; h: number; }; visualizationConfig: { type: VisualizationType; xAxis: string; yAxis: string[]; ... 17 more ...; sankeyOrient?: "horizontal" | ... 1 more ... | undefined; }; }' is missing the following properties from type 'DashboardCard': type, title
+components/dashboard/dashboard-card.tsx(73,18): error TS2552: Cannot find name 'DropdownMenu'. Did you mean 'DropdownMenuItem'?
+components/dashboard/dashboard-card.tsx(80,22): error TS2552: Cannot find name 'DropdownMenuContent'. Did you mean 'DropdownMenuItem'?
+components/dashboard/dashboard-card.tsx(112,23): error TS2552: Cannot find name 'DropdownMenuContent'. Did you mean 'DropdownMenuItem'?
+components/dashboard/dashboard-card.tsx(113,19): error TS2552: Cannot find name 'DropdownMenu'. Did you mean 'DropdownMenuItem'?
+components/forecast-chart.tsx(5,32): error TS2307: Cannot find module '@/components/echarts-wrapper' or its corresponding type declarations.
+components/visualizations/small-multiples.tsx(55,25): error TS2353: Object literal may only specify known properties, and 'showLegend' does not exist in type 'VisualizationConfig'.

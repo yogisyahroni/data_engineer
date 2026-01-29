@@ -121,7 +121,7 @@ export class JSONConnector extends BaseConnector {
         // Register data as alasql table
         alasql.default.tables[this.tableName] = { data: this.data };
 
-        const result = alasql.default(sql);
+        const result = alasql.default(sql) as any[];
         const executionTime = Date.now() - startTime;
 
         const columns = result.length > 0 ? Object.keys(result[0]) : [];

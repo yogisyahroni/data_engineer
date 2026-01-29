@@ -1,5 +1,5 @@
 
-const fetch = require('node-fetch');
+// const fetch = require('node-fetch'); // Use global fetch in Node 18+
 
 async function testAggregation() {
     const response = await fetch('http://localhost:3000/api/engine/aggregate', {

@@ -6,8 +6,9 @@ import { DashboardGrid } from '@/components/dashboard/dashboard-grid';
 import { AddCardDialog } from '@/components/dashboard/add-card-dialog';
 import { DashboardFilterBar } from '@/components/dashboard/dashboard-filter-bar';
 import { ShareDialog } from '@/components/dashboard/share-dialog';
+import { ReportScheduleDialog } from '@/components/dashboard/report-schedule-dialog';
 import { Button } from '@/components/ui/button';
-import { Loader2, Plus, Save, Layout, Share2, PencilOff } from 'lucide-react';
+import { Loader2, Plus, Save, Layout, Share2, PencilOff, CalendarClock, Smartphone } from 'lucide-react';
 import { useState } from 'react';
 import { useSavedQueries } from '@/hooks/use-saved-queries';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
@@ -43,6 +44,8 @@ export default function DashboardPage() {
     // UI State
     const [isAddCardOpen, setIsAddCardOpen] = useState(false);
     const [isShareOpen, setIsShareOpen] = useState(false);
+    const [isScheduleOpen, setIsScheduleOpen] = useState(false);
+    const [isMobileView, setIsMobileView] = useState(false);
 
     if (isLoading) {
         return (
@@ -95,6 +98,16 @@ export default function DashboardPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
+                    <Button
+                        variant={isMobileView ? "default" : "ghost"}
+                        size="icon"
+                        onClick={() => setIsMobileView(!isMobileView)}
+                        title="Toggle Mobile View"
+                        className="h-8 w-8"
+                    >
+                        <Smartphone className="h-4 w-4" />
+                    </Button>
+
                     {isEditing ? (
                         <>
                             <Button
@@ -127,6 +140,10 @@ export default function DashboardPage() {
                                 <PencilOff className="h-4 w-4" />
                                 Edit Layout
                             </Button>
+                            <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsScheduleOpen(true)}>
+                                <CalendarClock className="h-4 w-4" />
+                                Schedule
+                            </Button>
                             <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsShareOpen(true)}>
                                 <Share2 className="h-4 w-4" />
                                 Share
@@ -154,6 +171,7 @@ export default function DashboardPage() {
                     onRemoveCard={removeCard}
                     queriesData={queriesData}
                     onChartClick={handleChartClick}
+                    isMobileView={isMobileView}
                 />
             </main>
 
@@ -186,6 +204,12 @@ export default function DashboardPage() {
                 dashboardId={dashboardId}
                 isPublic={dashboard.isPublic}
                 onUpdateVisibility={togglePublic}
+            />
+
+            <ReportScheduleDialog
+                open={isScheduleOpen}
+                onOpenChange={setIsScheduleOpen}
+                dashboardId={dashboardId}
             />
         </div>
     );

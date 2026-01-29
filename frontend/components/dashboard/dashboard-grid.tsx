@@ -15,6 +15,7 @@ interface DashboardGridProps {
     onRemoveCard: (cardId: string) => void;
     onChartClick?: (params: any, cardId: string) => void;
     onDrillThrough?: (cardId: string) => void;
+    isMobileView?: boolean;
 }
 
 export function DashboardGrid({
@@ -24,7 +25,8 @@ export function DashboardGrid({
     onLayoutChange,
     onRemoveCard,
     onChartClick,
-    onDrillThrough
+    onDrillThrough,
+    isMobileView = false
 }: DashboardGridProps) {
     // We need to mount only after client-side hydration for RGL
     const [mounted, setMounted] = useState(false);
@@ -57,23 +59,35 @@ export function DashboardGrid({
 
     if (!mounted) return <div ref={containerRef} className="w-full h-full" />;
 
+    // Force mobile layout if isMobileView is true or width is small
+    const isMobile = isMobileView || width < 768;
+
     // Convert our cards to RGL layout format
     const layouts = {
         lg: cards.map(c => ({
             i: c.id,
-            x: c.position.x,
-            y: c.position.y,
-            w: c.position.w,
+            x: isMobile ? 0 : c.position.x,
+            y: isMobile ? c.position.y * 10 : c.position.y, // Multiply to ensure order if needed, or RGL handles it
+            w: isMobile ? 12 : c.position.w, // Full width in mobile
             h: c.position.h,
-            minW: 3,
+            minW: isMobile ? 12 : 3,
             minH: 4
         }))
     };
+
     return (
-        <div ref={containerRef} className="w-full min-h-[500px]">
+        <div ref={containerRef} className={`w-full min-h-[500px] ${isMobile ? 'mobile-grid' : ''}`}>
             {/* @ts-ignore - Responsive types are flaky with isDraggable in some versions */}
             <Responsive
-            // ... props ...
+                className="layout"
+                layouts={layouts}
+                breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+                cols={{ lg: 12, md: 10, sm: 6, xs: 1, xxs: 1 }}
+                rowHeight={30}
+                width={width}
+                isDraggable={isEditing && !isMobile}
+                isResizable={isEditing && !isMobile}
+                onLayoutChange={onLayoutChange}
             >
                 {cards.map((card) => {
                     const queryId = card.queryId;
@@ -88,7 +102,7 @@ export function DashboardGrid({
                     return (
                         <div key={card.id} className="relative group bg-card border rounded-lg shadow-sm overflow-hidden">
                             {/* Edit Overlay for Dragging */}
-                            {isEditing && (
+                            {isEditing && !isMobile && (
                                 <div className="card-drag-handle absolute inset-0 z-50 cursor-move bg-white/5 border-2 border-dashed border-primary hover:bg-primary/5 transition-colors rounded-lg flex items-center justify-center opacity-0 hover:opacity-100">
                                     <span className="text-primary font-medium bg-background px-3 py-1 rounded shadow-sm">Drag to Move</span>
                                 </div>
@@ -113,6 +127,6 @@ export function DashboardGrid({
                     );
                 })}
             </Responsive>
-        </div>
+        </div >
     );
 }

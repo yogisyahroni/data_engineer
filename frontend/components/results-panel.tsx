@@ -3,23 +3,35 @@
 import { useState, useMemo } from 'react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Download, Copy, ChevronUp, ChevronDown, ArrowUpDown, Search, Loader2, LayoutGrid } from 'lucide-react';
+import { Download, Copy, ChevronUp, ChevronDown, ArrowUpDown, Search, Loader2, LayoutGrid, Table as TableIcon, Grid3X3 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Skeleton } from '@/components/ui/skeleton';
 import { AddToDashboardDialog } from '@/components/dashboard/add-to-dashboard-dialog';
 import { VisualizationConfig } from '@/lib/types';
+import dynamic from 'next/dynamic';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { ConnectFeedDialog } from '@/components/query-results/connect-feed-dialog';
+import { Plug } from 'lucide-react';
+
+import { StatusBadge } from '@/components/catalog/status-badge';
+
+const SpreadsheetView = dynamic(
+  () => import('./query-results/spreadsheet-view'),
+  { ssr: false }
+);
 
 interface ResultsPanelProps {
   data: Record<string, any>[] | null;
   columns: string[] | null;
   rowCount: number;
   executionTime: number;
-  isLoading?: boolean;
   error?: string | null;
   sql?: string;
   aiPrompt?: string;
   connectionId?: string;
+  queryId?: string;
+  certificationStatus?: 'draft' | 'verified' | 'deprecated';
   visualizationConfig?: Partial<VisualizationConfig>;
   pagination?: {
     page: number;
@@ -43,6 +55,8 @@ export function ResultsPanel({
   sql = '',
   aiPrompt,
   connectionId = 'db1',
+  queryId,
+  certificationStatus,
   visualizationConfig,
   pagination,
   onPageChange,
@@ -52,6 +66,8 @@ export function ResultsPanel({
   const [searchQuery, setSearchQuery] = useState('');
   const [localPage, setLocalPage] = useState(1); // Fallback if no server pagination
   const [isPinDialogOpen, setIsPinDialogOpen] = useState(false);
+  const [isConnectDialogOpen, setIsConnectDialogOpen] = useState(false);
+  const [viewMode, setViewMode] = useState<'table' | 'spreadsheet'>('table');
 
   // Use server pagination if available, else local
   const currentPage = pagination?.page || localPage;
@@ -293,6 +309,10 @@ export function ResultsPanel({
           </div>
         </div>
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="gap-2 text-green-600 border-green-200 hover:bg-green-50 dark:hover:bg-green-900/10" onClick={() => setIsConnectDialogOpen(true)}>
+            <Plug className="w-4 h-4" />
+            <span className="hidden sm:inline">Connect</span>
+          </Button>
           <Button variant="outline" size="sm" className="gap-2 border-primary/20 text-primary hover:bg-primary/5" onClick={() => setIsPinDialogOpen(true)} data-testid="pin-to-dashboard-button">
             <LayoutGrid className="w-4 h-4" />
             <span className="hidden sm:inline">Pin to Dashboard</span>
@@ -305,6 +325,17 @@ export function ResultsPanel({
             <Download className="w-4 h-4" />
             <span className="hidden sm:inline">Export</span>
           </Button>
+
+          <div className="h-6 w-px bg-border mx-2" />
+
+          <ToggleGroup type="single" value={viewMode} onValueChange={(v) => v && setViewMode(v as any)} className="border rounded-md">
+            <ToggleGroupItem value="table" size="sm" aria-label="Table View" className="h-8 px-2">
+              <TableIcon className="w-4 h-4" />
+            </ToggleGroupItem>
+            <ToggleGroupItem value="spreadsheet" size="sm" aria-label="Spreadsheet View" className="h-8 px-2">
+              <Grid3X3 className="w-4 h-4" />
+            </ToggleGroupItem>
+          </ToggleGroup>
         </div>
 
         <AddToDashboardDialog
@@ -315,50 +346,65 @@ export function ResultsPanel({
           connectionId={connectionId}
           visualizationConfig={visualizationConfig}
         />
+
+        <ConnectFeedDialog
+          isOpen={isConnectDialogOpen}
+          onOpenChange={setIsConnectDialogOpen}
+          queryId={queryId}
+        />
       </div>
 
-      {/* Table */}
+
+
+      {/* Table or Spreadsheet */}
       <div className="flex-1 overflow-auto" data-testid="results-table-container">
-        <Table>
-          <TableHeader className="sticky top-0 bg-card border-b border-border z-10">
-            <TableRow>
-              <TableHead className="w-12 text-center text-xs font-medium text-muted-foreground">
-                #
-              </TableHead>
-              {displayColumns.map((column) => (
-                <TableHead
-                  key={column}
-                  className="cursor-pointer hover:bg-muted/50 transition-colors"
-                  onClick={() => handleSort(column)}
-                  data-testid={`column-head-${column}`}
-                >
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium">{column}</span>
-                    {getSortIcon(column)}
-                  </div>
+        {viewMode === 'table' ? (
+          <Table>
+            <TableHeader className="sticky top-0 bg-card border-b border-border z-10">
+              <TableRow>
+                <TableHead className="w-12 text-center text-xs font-medium text-muted-foreground">
+                  #
                 </TableHead>
-              ))}
-            </TableRow>
-          </TableHeader>
-          <TableBody data-testid="results-table-body">
-            {paginatedData.map((row, rowIndex) => (
-              <TableRow
-                key={rowIndex}
-                className="hover:bg-muted/30 transition-colors"
-                data-testid={`result-row-${rowIndex}`}
-              >
-                <TableCell className="text-center font-mono text-xs text-muted-foreground">
-                  {(currentPage - 1) * rowsPerPage + rowIndex + 1}
-                </TableCell>
                 {displayColumns.map((column) => (
-                  <TableCell key={column} className="text-sm">
-                    {formatCellValue(row[column], column)}
-                  </TableCell>
+                  <TableHead
+                    key={column}
+                    className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => handleSort(column)}
+                    data-testid={`column-head-${column}`}
+                  >
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{column}</span>
+                      {getSortIcon(column)}
+                    </div>
+                  </TableHead>
                 ))}
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody data-testid="results-table-body">
+              {paginatedData.map((row, rowIndex) => (
+                <TableRow
+                  key={rowIndex}
+                  className="hover:bg-muted/30 transition-colors"
+                  data-testid={`result-row-${rowIndex}`}
+                >
+                  <TableCell className="text-center font-mono text-xs text-muted-foreground">
+                    {(currentPage - 1) * rowsPerPage + rowIndex + 1}
+                  </TableCell>
+                  {displayColumns.map((column) => (
+                    <TableCell key={column} className="text-sm">
+                      {formatCellValue(row[column], column)}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        ) : (
+          <SpreadsheetView
+            data={processedData}
+            columns={displayColumns}
+          />
+        )}
       </div>
 
       {/* Footer with Pagination */}
@@ -407,6 +453,6 @@ export function ResultsPanel({
           </span>
         </div>
       </div>
-    </div>
+    </div >
   );
 }

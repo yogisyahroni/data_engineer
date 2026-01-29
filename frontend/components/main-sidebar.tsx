@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import {
   ChevronDown,
@@ -36,14 +36,19 @@ export function MainSidebar({ isOpen, onClose }: SidebarProps) {
     return pathname.startsWith(path);
   };
 
+  const params = useParams();
+  const workspaceId = params?.workspaceId as string;
+
   const navItems = [
-    { icon: Zap, label: 'Query Editor', href: '/' },
+    { icon: Zap, label: 'Query Editor', href: workspaceId ? `/workspace/${workspaceId}` : '/' },
     { icon: Database, label: 'Connections', href: '/connections' },
     { icon: BookOpen, label: 'Modeling', href: '/modeling' },
     { icon: Upload, label: 'Upload Data', href: '/ingest' },
     { icon: Search, label: 'Explorer', href: '/explorer' },
     { icon: BarChart3, label: 'Dashboards', href: '/dashboards' },
     { icon: FolderOpen, label: 'Collections', href: '/saved-queries' },
+    // Only show Lineage if inside a workspace
+    ...(workspaceId ? [{ icon: Boxes, label: 'Lineage', href: `/workspace/${workspaceId}/pipelines/lineage` }] : []),
   ];
 
   return (

@@ -34,6 +34,7 @@ export function HomePageContent() {
         sql: string;
         aiPrompt?: string;
     }>({ sql: 'SELECT * FROM orders LIMIT 10' });
+    const [queryStatus, setQueryStatus] = useState<'draft' | 'verified' | 'deprecated' | undefined>(undefined);
 
     // Query execution hook
     const {
@@ -56,9 +57,24 @@ export function HomePageContent() {
     useEffect(() => {
         if (initialSql) {
             setActiveQuery(prev => ({ ...prev, sql: initialSql }));
-            // Also need to push this to Editor if it doesn't auto-sync
         }
     }, [initialSql]);
+
+    // Fetch query details (including status) when ID is present
+    useEffect(() => {
+        if (queryId) {
+            fetch(`/api/queries/saved/${queryId}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (data.success && data.data) {
+                        setQueryStatus(data.data.certificationStatus);
+                    }
+                })
+                .catch(err => console.error('Failed to fetch query details:', err));
+        } else {
+            setQueryStatus(undefined);
+        }
+    }, [queryId]);
 
     // Handle results update from editor
     const handleResultsUpdate = (results: {
@@ -208,6 +224,7 @@ export function HomePageContent() {
                                     sql={activeQuery.sql}
                                     aiPrompt={activeQuery.aiPrompt}
                                     connectionId={activeConnection?.id || 'db1'}
+                                    queryId={queryId || undefined}
                                     visualizationConfig={visualizationConfig}
                                     pagination={pagination}
                                     onPageChange={setPage}

@@ -2,11 +2,17 @@
 'use client';
 
 import React, { useMemo } from 'react';
-import { EChartsWrapper } from './visualizations/echarts-wrapper';
+import dynamic from 'next/dynamic';
 import { buildEChartsOptions } from '@/lib/visualizations/echarts-options';
+
+const EChartsWrapper = dynamic(() => import('./visualizations/echarts-wrapper').then(mod => mod.EChartsWrapper), {
+  ssr: false,
+  loading: () => <div className="h-full w-full flex items-center justify-center bg-muted/20 animate-pulse rounded-lg"><span className="text-muted-foreground text-xs">Loading Chart Engine...</span></div>
+});
 import { useTheme } from 'next-themes';
 import { AlertCircle } from 'lucide-react';
 import { VisualizationConfig } from '@/lib/types';
+import { useWorkspaceTheme } from '@/components/theme/theme-provider';
 
 // Import specialized components
 import { MetricCard } from './metric-card';
@@ -23,6 +29,7 @@ interface ChartVisualizationProps {
 
 export function ChartVisualization({ data, config, isLoading, onDataClick }: ChartVisualizationProps) {
   const { theme } = useTheme();
+  const { theme: workspaceTheme } = useWorkspaceTheme();
 
   // Strict Config with defaults
   const strictConfig = useMemo(() => {
@@ -30,10 +37,10 @@ export function ChartVisualization({ data, config, isLoading, onDataClick }: Cha
       type: 'bar',
       xAxis: '',
       yAxis: [],
-      colors: [],
+      colors: config.colors && config.colors.length > 0 ? config.colors : (workspaceTheme?.chartPalette || []),
       ...config,
     } as VisualizationConfig;
-  }, [config]);
+  }, [config, workspaceTheme]);
 
   // Validate Config
   const isValid = useMemo(() => {

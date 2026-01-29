@@ -105,6 +105,16 @@ export abstract class BaseConnector {
     abstract disconnect(): Promise<void>;
 
     /**
+     * Extract data for ETL pipelines
+     * Yields batches of rows [row1, row2, ..., rowN]
+     */
+    async *extractData(config: any): AsyncGenerator<any[], void, unknown> {
+        // Default implementation (can be overridden)
+        // If not implemented, one-shot fetch via executeQuery might be used
+        yield [];
+    }
+
+    /**
      * Get connector display name
      */
     getDisplayName(): string {

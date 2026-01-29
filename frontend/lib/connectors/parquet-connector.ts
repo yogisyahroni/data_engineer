@@ -24,6 +24,7 @@ export class ParquetConnector extends BaseConnector {
             }
 
             // Import parquetjs library (lazy load)
+            // @ts-ignore
             const parquetjs = await import('parquetjs');
 
             // Open parquet file
@@ -128,7 +129,7 @@ export class ParquetConnector extends BaseConnector {
         // Register data as alasql table
         alasql.default.tables[this.tableName] = { data: this.data };
 
-        const result = alasql.default(sql);
+        const result = alasql.default(sql) as any[];
         const executionTime = Date.now() - startTime;
 
         const columns = result.length > 0 ? Object.keys(result[0]) : [];
@@ -144,6 +145,21 @@ export class ParquetConnector extends BaseConnector {
     async disconnect(): Promise<void> {
         this.data = [];
         this.schema = null;
+    }
+
+    async *extractData(): AsyncGenerator<any[]> {
+        if (this.data.length === 0) {
+            // Attempt to load if not loaded (optional, depending on flow)
+            const testResult = await this.testConnection();
+            if (!testResult.success) {
+                throw new Error(testResult.error || "Failed to load parquet data");
+            }
+        }
+
+        // Yield all data as a single batch for now (Parquet is file-based)
+        if (this.data.length > 0) {
+            yield this.data;
+        }
     }
 
     validateConfig(): { valid: boolean; errors: string[] } {

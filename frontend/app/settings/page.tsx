@@ -109,7 +109,12 @@ export default function SettingsPage() {
   };
 
   // -- AI Logic --
-  const [aiConfig, setAiConfig] = useState({ provider: 'openai', apiKey: '' });
+  const [aiConfig, setAiConfig] = useState({
+    provider: 'openai',
+    apiKey: '',
+    baseUrl: '',
+    model: ''
+  });
   const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
@@ -350,12 +355,31 @@ export default function SettingsPage() {
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="openai">OpenAI</SelectItem>
+                        <SelectItem value="openai-compatible">OpenAI Compatible (Local/Custom)</SelectItem>
                         <SelectItem value="anthropic">Anthropic Claude</SelectItem>
                         <SelectItem value="gemini">Google Gemini</SelectItem>
                         <SelectItem value="openrouter">OpenRouter</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
+
+                  {(aiConfig.provider === 'openai' || aiConfig.provider === 'openai-compatible' || aiConfig.provider === 'openrouter') && (
+                    <div className="space-y-2">
+                      <Label>Base URL</Label>
+                      <Input
+                        placeholder={aiConfig.provider === 'openai' ? 'https://api.openai.com/v1' : 'http://localhost:8000/v1'}
+                        value={aiConfig.baseUrl || ''}
+                        onChange={(e) => setAiConfig({ ...aiConfig, baseUrl: e.target.value })}
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        {aiConfig.provider === 'openai'
+                          ? 'Optional. Override only if using a proxy or custom endpoint.'
+                          : 'The API endpoint URL (e.g. for LM Studio or Ollama).'
+                        }
+                      </p>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     <Label>API Key</Label>
                     <Input
@@ -365,6 +389,16 @@ export default function SettingsPage() {
                       placeholder="sk-..."
                     />
                     <p className="text-xs text-muted-foreground">Keys are stored securely encrypted.</p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label>Model</Label>
+                    <Input
+                      placeholder={aiConfig.provider === 'openai' ? 'gpt-4o' : 'llama-3.1-70b'}
+                      value={aiConfig.model || ''}
+                      onChange={(e) => setAiConfig({ ...aiConfig, model: e.target.value })}
+                    />
+                    <p className="text-xs text-muted-foreground">Specify the model ID to use.</p>
                   </div>
                   <Button onClick={handleSaveAI} disabled={aiLoading}>
                     {aiLoading && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
@@ -400,8 +434,8 @@ export default function SettingsPage() {
           <TabsContent value="developer">
             <DeveloperSettings />
           </TabsContent>
-        </Tabs>
-      </div>
-    </main>
+        </Tabs >
+      </div >
+    </main >
   );
 }

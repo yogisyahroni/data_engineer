@@ -15,9 +15,9 @@ async function verifyRLS() {
             'SELECT count(*) as count FROM big_sales',
             1,
             50,
-            { segment: 'Consumer' }
+            { userId: 'test-user', role: 'viewer', tenantId: 'system', segment: 'Consumer' }
         );
-        const count1 = parseInt(res1.data[0].count);
+        const count1 = parseInt(res1.data?.[0]?.count || '0');
         console.log(`- Consumer sees: ${count1} rows`);
         if (count1 === 0 || count1 === 1000000) throw new Error('RLS Failed: Consumer should see ~33% of rows, not 0 or ALL');
 
@@ -28,9 +28,9 @@ async function verifyRLS() {
             'SELECT count(*) as count FROM big_sales',
             1,
             50,
-            { segment: 'Corporate' }
+            { userId: 'test-user', role: 'viewer', tenantId: 'system', segment: 'Corporate' }
         );
-        const count2 = parseInt(res2.data[0].count);
+        const count2 = parseInt(res2.data?.[0]?.count || '0');
         console.log(`- Corporate sees: ${count2} rows`);
 
         // 3. As Admin (ALL)
@@ -40,9 +40,9 @@ async function verifyRLS() {
             'SELECT count(*) as count FROM big_sales',
             1,
             50,
-            { segment: 'ALL' }
+            { userId: 'admin', role: 'admin', tenantId: 'system' }
         );
-        const count3 = parseInt(res3.data[0].count);
+        const count3 = parseInt(res3.data?.[0]?.count || '0');
         console.log(`- Admin sees: ${count3} rows`);
 
         if (count3 !== 1000000) throw new Error(`Admin should see 1,000,000 rows, saw ${count3}`);
@@ -56,7 +56,7 @@ async function verifyRLS() {
             1,
             50
         );
-        const count4 = parseInt(res4.data[0].count);
+        const count4 = parseInt(res4.data?.[0]?.count || '0');
         console.log(`- Anonymous sees: ${count4} rows`);
         if (count4 !== 0) throw new Error('Security Breach: Anonymous user saw data!');
 

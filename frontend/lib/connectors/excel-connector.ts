@@ -130,12 +130,13 @@ export class ExcelConnector extends BaseConnector {
         const result = alasql.default(sql);
         const executionTime = Date.now() - startTime;
 
-        const columns = result.length > 0 ? Object.keys(result[0]) : [];
+        const rows = Array.isArray(result) ? result : [];
+        const columns = rows.length > 0 && typeof rows[0] === 'object' ? Object.keys(rows[0] as object) : [];
 
         return {
             columns,
-            rows: result,
-            rowCount: result.length,
+            rows,
+            rowCount: rows.length,
             executionTime,
         };
     }

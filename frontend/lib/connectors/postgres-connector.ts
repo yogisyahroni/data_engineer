@@ -120,6 +120,31 @@ export class PostgresConnector extends BaseConnector {
         }
     }
 
+    async *extractData(config: { tableName: string; batchSize?: number }): AsyncGenerator<any[], void, unknown> {
+        await this.connect();
+        const batchSize = config.batchSize || 1000;
+        const tableName = config.tableName;
+
+        // Simple Offset-based pagination (For MVP)
+        // Production should use Cursor (pg-cursor) for better performance on large tables
+        let offset = 0;
+
+        while (true) {
+            const res = await this.client!.query(`SELECT * FROM ${tableName} LIMIT $1 OFFSET $2`, [batchSize, offset]);
+
+            if (res.rows.length === 0) {
+                break;
+            }
+
+            yield res.rows;
+            offset += res.rows.length;
+
+            if (res.rows.length < batchSize) {
+                break;
+            }
+        }
+    }
+
     private async connect(): Promise<void> {
         if (this.client) return;
 

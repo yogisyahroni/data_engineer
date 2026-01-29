@@ -1,0 +1,66 @@
+
+> my-v0-project@0.1.0 build
+> next build
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+   Γû▓ Next.js 16.0.10 (Turbopack)
+   - Environments: .env
+
+   Creating an optimized production build ...
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+
+> Build error occurred
+Error: Turbopack build failed with 2 errors:
+./app/canvas/page.tsx:25:1
+Module not found: Can't resolve '@/hooks/use-workspace'
+  23 | import { useRouter } from 'next/navigation';
+  24 | import { toast } from 'sonner';
+> 25 | import { useWorkspace } from '@/hooks/use-workspace';
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  26 |
+  27 | interface Canvas {
+  28 |     id: string;
+
+Import map: aliased to relative './hooks/use-workspace' inside of [project]/
+
+
+Import traces:
+  Client Component Browser:
+    ./app/canvas/page.tsx [Client Component Browser]
+    ./app/canvas/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/canvas/page.tsx [Client Component SSR]
+    ./app/canvas/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+./app/docs/page.tsx:4:1
+Module not found: Can't resolve 'swagger-ui-dist/swagger-ui.css'
+  2 |
+  3 | import { useEffect } from 'react';
+> 4 | import 'swagger-ui-dist/swagger-ui.css';
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  5 |
+  6 | export default function ApiDocs() {
+  7 |     useEffect(() => {
+
+
+
+Import traces:
+  Client Component Browser:
+    ./app/docs/page.tsx [Client Component Browser]
+    ./app/docs/page.tsx [Server Component]
+
+  Client Component SSR:
+    ./app/docs/page.tsx [Client Component SSR]
+    ./app/docs/page.tsx [Server Component]
+
+https://nextjs.org/docs/messages/module-not-found
+
+
+    at <unknown> (./app/canvas/page.tsx:25:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+    at <unknown> (./app/docs/page.tsx:4:1)
+    at <unknown> (https://nextjs.org/docs/messages/module-not-found)

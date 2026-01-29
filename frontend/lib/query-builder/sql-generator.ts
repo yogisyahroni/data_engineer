@@ -14,8 +14,10 @@ import {
 export class SQLGenerator {
     /**
      * Generate SQL from query builder state
+     * @param state The query builder state
+     * @param virtualColumns Optional map of virtual column names to their SQL expressions
      */
-    static generate(state: QueryBuilderState): string {
+    static generate(state: QueryBuilderState, virtualColumns?: Record<string, string>): string {
         const { table, columns, filters, sorts, limit } = state;
 
         if (!table) {
@@ -29,14 +31,15 @@ export class SQLGenerator {
         const parts: string[] = [];
 
         // SELECT clause
-        parts.push(this.buildSelectClause(columns));
+        parts.push(this.buildSelectClause(columns, virtualColumns));
 
         // FROM clause
         parts.push(`FROM ${this.escapeIdentifier(table)}`);
 
         // WHERE clause
+        // WHERE clause
         if (filters.conditions.length > 0) {
-            parts.push(`WHERE ${this.buildFilterClause(filters)}`);
+            parts.push(`WHERE ${this.buildFilterClause(filters, virtualColumns)}`);
         }
 
         // GROUP BY clause (if any aggregations)
@@ -53,7 +56,10 @@ export class SQLGenerator {
 
         // ORDER BY clause
         if (sorts.length > 0) {
-            parts.push(this.buildOrderByClause(sorts));
+            // ORDER BY clause
+            if (sorts.length > 0) {
+                parts.push(this.buildOrderByClause(sorts, virtualColumns));
+            }
         }
 
         // LIMIT clause
@@ -67,20 +73,21 @@ export class SQLGenerator {
     /**
      * Build SELECT clause
      */
-    private static buildSelectClause(columns: ColumnSelection[]): string {
+    private static buildSelectClause(columns: ColumnSelection[], virtualColumns?: Record<string, string>): string {
         const fields = columns.map((col) => {
-            const escapedColumn = this.escapeIdentifier(col.column);
+            // Check if column is virtual
+            const resolvedColumn = this.resolveColumn(col.column, virtualColumns);
 
             if (col.aggregation) {
-                const aggregated = `${col.aggregation}(${escapedColumn})`;
+                const aggregated = `${col.aggregation}(${resolvedColumn})`;
                 return col.alias
                     ? `${aggregated} AS ${this.escapeIdentifier(col.alias)}`
                     : aggregated;
             }
 
             return col.alias
-                ? `${escapedColumn} AS ${this.escapeIdentifier(col.alias)}`
-                : escapedColumn;
+                ? `${resolvedColumn} AS ${this.escapeIdentifier(col.alias)}`
+                : resolvedColumn;
         });
 
         return `SELECT ${fields.join(', ')}`;
@@ -89,7 +96,7 @@ export class SQLGenerator {
     /**
      * Build WHERE clause from filter group
      */
-    private static buildFilterClause(group: FilterGroup): string {
+    private static buildFilterClause(group: FilterGroup, virtualColumns?: Record<string, string>): string {
         if (group.conditions.length === 0) {
             return '1=1'; // Empty group
         }
@@ -97,11 +104,11 @@ export class SQLGenerator {
         const clauses = group.conditions.map((condition) => {
             if (isFilterGroup(condition)) {
                 // Nested group - wrap in parentheses
-                return `(${this.buildFilterClause(condition)})`;
+                return `(${this.buildFilterClause(condition, virtualColumns)})`;
             }
 
             if (isFilterCondition(condition)) {
-                return this.buildCondition(condition);
+                return this.buildCondition(condition, virtualColumns);
             }
 
             return '1=1';
@@ -113,16 +120,16 @@ export class SQLGenerator {
     /**
      * Build a single filter condition
      */
-    private static buildCondition(condition: FilterCondition): string {
+    private static buildCondition(condition: FilterCondition, virtualColumns?: Record<string, string>): string {
         const { column, operator, value } = condition;
-        const escapedColumn = this.escapeIdentifier(column);
+        const resolvedColumn = this.resolveColumn(column, virtualColumns);
 
         switch (operator) {
             case 'IS NULL':
-                return `${escapedColumn} IS NULL`;
+                return `${resolvedColumn} IS NULL`;
 
             case 'IS NOT NULL':
-                return `${escapedColumn} IS NOT NULL`;
+                return `${resolvedColumn} IS NOT NULL`;
 
             case 'IN':
             case 'NOT IN': {
@@ -130,12 +137,12 @@ export class SQLGenerator {
                 const escapedValues = values
                     .map((v) => this.escapeLiteral(String(v)))
                     .join(', ');
-                return `${escapedColumn} ${operator} (${escapedValues})`;
+                return `${resolvedColumn} ${operator} (${escapedValues})`;
             }
 
             case 'LIKE': {
                 const escapedValue = this.escapeLiteral(`%${value}%`);
-                return `${escapedColumn} LIKE ${escapedValue}`;
+                return `${resolvedColumn} LIKE ${escapedValue}`;
             }
 
             case 'BETWEEN': {
@@ -143,13 +150,13 @@ export class SQLGenerator {
                     throw new Error('BETWEEN operator requires array of 2 values');
                 }
                 const [start, end] = value.map((v) => this.escapeLiteral(String(v)));
-                return `${escapedColumn} BETWEEN ${start} AND ${end}`;
+                return `${resolvedColumn} BETWEEN ${start} AND ${end}`;
             }
 
             default: {
                 // Standard comparison: =, !=, >, <, >=, <=
                 const escapedValue = this.escapeLiteral(String(value));
-                return `${escapedColumn} ${operator} ${escapedValue}`;
+                return `${resolvedColumn} ${operator} ${escapedValue}`;
             }
         }
     }
@@ -157,12 +164,44 @@ export class SQLGenerator {
     /**
      * Build ORDER BY clause
      */
-    private static buildOrderByClause(sorts: SortRule[]): string {
+    private static buildOrderByClause(sorts: SortRule[], virtualColumns?: Record<string, string>): string {
         const sortClauses = sorts.map(
             (sort) =>
-                `${this.escapeIdentifier(sort.column)} ${sort.direction}`
+                `${this.resolveColumn(sort.column, virtualColumns)} ${sort.direction}`
         );
         return `ORDER BY ${sortClauses.join(', ')}`;
+    }
+
+    /**
+     * Resolve a column to its SQL expression (if virtual) or escaped identifier
+     */
+    /**
+     * Resolve a column to its SQL expression (if virtual) or escaped identifier
+     * Supports recursive expansion of dependencies (e.g. ${Metric})
+     */
+    private static resolveColumn(column: string, virtualColumns?: Record<string, string>, depth = 0): string {
+        const MAX_DEPTH = 10;
+        if (depth > MAX_DEPTH) {
+            throw new Error(`Circular dependency or max depth exceeded resolving column: ${column}`);
+        }
+
+        // 1. If column is a known virtual metric, get its raw expression
+        if (virtualColumns && virtualColumns[column]) {
+            const rawExpression = virtualColumns[column];
+
+            // 2. Recursively expand any ${Variable} placeholders in the expression
+            // Regex matches ${SomeName}
+            const expanded = rawExpression.replace(/\$\{([^}]+)\}/g, (match, variableName) => {
+                // Recursive call with incremented depth (treating the variable as a column)
+                // We don't wrap in quotes here because resolveColumn returns an escaped/valid SQL fragment
+                return this.resolveColumn(variableName, virtualColumns, depth + 1);
+            });
+
+            return `(${expanded})`;
+        }
+
+        // 3. If not virtual, treat as physical column
+        return this.escapeIdentifier(column);
     }
 
     /**

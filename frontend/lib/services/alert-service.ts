@@ -79,7 +79,7 @@ export class AlertService {
             dimensions: [], // Global accumulation (no group by)
             metrics: [{ column: alert.metricColumn, type: alert.metricType }],
             limit: 1,
-            context: { segment: alert.segment } // Enforce RLS of the creator
+            context: { userId: 'system-alert', tenantId: 'system', role: 'admin', segment: alert.segment } // Enforce RLS of the creator
         });
 
         if (!result.success || !result.data || result.data.length === 0) {

@@ -2,17 +2,8 @@
 import { type AggregationRequest, aggregationService } from '@/lib/services/aggregation-service';
 import { AIProviderFactory } from '@/lib/ai/providers/provider-factory';
 import { auditService } from '@/lib/services/audit-service';
-
-export interface AgentConfig {
-    id: number;
-    name: string;
-    modelId: string;
-    promptTemplate: string;
-    metricConfig: AggregationRequest; // Reusing the strict Type
-    scheduleCron: string;
-    emailTo: string;
-    lastRunAt?: Date;
-}
+import { db } from '@/lib/db';
+import { Agent } from '@prisma/client';
 
 export class AgentService {
 
@@ -23,33 +14,21 @@ export class AgentService {
     async runDueAgents() {
         console.log('[AgentService] 🌅 Waking up agents...');
 
-        // 1. Fetch Agents (Mock DB for MVP)
-        const agents: AgentConfig[] = [
-            {
-                id: 101,
-                name: 'Daily Sales Briefing',
-                modelId: 'gemini-1.5-pro',
-                promptTemplate: 'You are a Senior Data Analyst. Analyze this data. Identify top 3 trends. Be brief and professional.',
-                scheduleCron: '0 8 * * *',
-                emailTo: 'ceo@company.com',
-                metricConfig: {
-                    connectionId: 'db-1',
-                    table: 'orders',
-                    // Logic: Get last 2 days of data by 'day' to compare Today vs Yesterday
-                    dimensions: [{ column: 'created_at', timeBucket: 'day' }],
-                    metrics: [{ column: 'amount', type: 'sum', label: 'Revenue' }],
-                    limit: 30, // Last 30 days for trend analysis
-                    context: { tenantId: 't1', role: 'admin', userId: 'agent-bot' }
-                }
-            }
-        ];
+        // 1. Fetch Active Agents from DB
+        const agents = await db.agent.findMany({
+            where: { isActive: true }
+        });
 
         const results = [];
 
         for (const agent of agents) {
             try {
+                // Parse metric config from JSON
+                // TODO: Validate schema with Zod
+                const metricConfig = agent.metricConfig as unknown as AggregationRequest;
+
                 // 2. Fetch Data (The "Eyes")
-                const dataResult = await aggregationService.executeAggregation(agent.metricConfig);
+                const dataResult = await aggregationService.executeAggregation(metricConfig);
 
                 if (!dataResult.success || !dataResult.data) {
                     throw new Error('Failed to fetch data for agent');
@@ -62,35 +41,26 @@ export class AgentService {
                 const finalPrompt = `
                     ${agent.promptTemplate}
                     
-                    DATA SET (Last 30 Days):
+                    DATA SET:
                     ${dataStr}
                     
                     INSTRUCTION:
                     - Write a "Morning Briefing" email body.
-                    - Highlight the trend of the last 2 days.
+                    - Highlight the trend if applicable.
                     - No preamble. Start with "Here is your briefing:"
                 `;
 
-                // Uses the Factory we built in Phase B!
-                const provider = AIProviderFactory.getProvider('google');
-                // We fake a "Schema" and "DB Type" since we are asking for Text Analysis, not SQL Generation
-                // But our Provider interface is strictly for Query Generation. we might need a `generateText` method?
-                // Checking Provider Interface... It's `generateQuery`. 
-                // HACK for MVP: We use `generateQuery` but ask it to return "SQL Comment" format or just abuse the prompt.
-                // BETTER: We should add `generateInsight` to the provider. 
-                // "Iron Hand" decision: For speed, we will assume `generateQuery` returns the text explanation in the `explanation` field if available, 
-                // OR we just use a direct call if the abstraction is too strict.
-                // Let's check `AIProviderFactory`... it returns `AIProvider`.
-                // Let's assume we can pass a special flag or just read the response.
+                // Uses the Factory
+                const provider = AIProviderFactory.getProvider('google'); // TODO: Use agent.modelId to determine provider
 
-                // Constructing a "Mock" Schema DDL to not confuse the SQL-focused LLM
+                // Construct schema hint
                 const schemaDDL = "-- Data Analysis Mode";
 
                 const aiResponse = await provider.generateQuery({
                     prompt: finalPrompt,
                     schemaDDL,
                     databaseType: 'postgres',
-                    model: { id: agent.modelId, name: 'Gemini Pro', providerId: 'google', contextWindow: 32000 }
+                    model: { id: agent.modelId, name: 'Gemini Agent', providerId: 'google', description: 'Agent Model' }
                 });
 
                 // 4. Dispatch (The "Mouth")
@@ -104,19 +74,24 @@ export class AgentService {
                 ----------------------------------------
                 `);
 
-                // 5. Audit
-                auditService.log(agent.metricConfig.context!, {
+                // 5. Audit & Update State
+                auditService.log(metricConfig.context || { userId: 'system', tenantId: 'system', role: 'admin' }, {
                     action: 'AGENT_RUN',
-                    resource: agent.name,
+                    resource: agent.id, // Use DB ID
                     details: 'Briefing Sent',
                     status: 'SUCCESS'
                 });
 
+                await db.agent.update({
+                    where: { id: agent.id },
+                    data: { lastRunAt: new Date() }
+                });
+
                 results.push({ id: agent.id, status: 'SUCCESS' });
 
-            } catch (err) {
+            } catch (err: any) {
                 console.error(`[AgentService] Agent ${agent.name} crashed:`, err);
-                results.push({ id: agent.id, status: 'ERROR', error: err });
+                results.push({ id: agent.id, status: 'ERROR', error: err.message });
             }
         }
 

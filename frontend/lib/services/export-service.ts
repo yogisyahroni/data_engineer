@@ -1,129 +1,107 @@
 import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
+import jsPDF from 'jspdf';
 
-export class ExportService {
+export const ExportService = {
     /**
-     * Captures a DOM element and exports it as a high-quality PDF.
-     * Ideal for board meetings and executive reports.
+     * Export a DOM element as a PNG image.
+     * @param elementId The ID of the DOM element to capture.
+     * @param fileName The name of the file to download (without extension).
      */
-    static async exportToPDF(elementId: string, filename: string = 'dashboard-report.pdf'): Promise<void> {
-        const element = document.getElementById(elementId);
-        if (!element) throw new Error(`Element with id ${elementId} not found`);
-
+    async downloadPNG(elementId: string, fileName: string) {
         try {
-            // Add a temporary header for the PDF
-            const header = document.createElement('div');
-            header.style.textAlign = 'center';
-            header.style.marginBottom = '20px';
-            header.innerHTML = `
-                <h1 style="font-size: 24px; margin-bottom: 5px; font-family: sans-serif;">InsightEngine Dashboard Report</h1>
-                <p style="font-size: 14px; color: #666; font-family: sans-serif;">Generated on ${new Date().toLocaleString()}</p>
-            `;
-            element.prepend(header);
+            const element = document.getElementById(elementId);
+            if (!element) throw new Error(`Element with ID '${elementId}' not found`);
 
-            const canvas = await html2canvas(element, {
-                scale: 2, // High DPI for industrial printing
-                useCORS: true,
-                logging: false,
-                backgroundColor: '#ffffff'
-            });
-
-            // Remove the temporary header
-            element.removeChild(header);
-
-            const imgData = canvas.toDataURL('image/png');
-            const pdf = new jsPDF({
-                orientation: 'landscape',
-                unit: 'px',
-                format: [canvas.width, canvas.height]
-            });
-
-            pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-            pdf.save(filename);
-
-            console.log(`[ExportService] PDF exported successfully: ${filename}`);
-        } catch (error) {
-            console.error('[ExportService] PDF export failed:', error);
-            throw error;
-        }
-    }
-
-    /**
-     * Exports a dashboard or chart as a PNG image.
-     */
-    static async exportToPNG(elementId: string, filename: string = 'chart-export.png'): Promise<void> {
-        const element = document.getElementById(elementId);
-        if (!element) throw new Error(`Element with id ${elementId} not found`);
-
-        try {
-            const canvas = await html2canvas(element, {
-                scale: 2,
-                useCORS: true,
-                backgroundColor: null // Transparent background support
-            });
+            const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+            const dataUrl = canvas.toDataURL('image/png');
 
             const link = document.createElement('a');
-            link.download = filename;
-            link.href = canvas.toDataURL('image/png');
+            link.href = dataUrl;
+            link.download = `${fileName}.png`;
             link.click();
-
-            console.log(`[ExportService] PNG exported successfully: ${filename}`);
         } catch (error) {
-            console.error('[ExportService] PNG export failed:', error);
+            console.error('Export PNG failed:', error);
             throw error;
         }
-    }
+    },
 
     /**
-     * Exports raw data array to CSV.
+     * Export a DOM element as a PDF document.
+     * @param elementId The ID of the DOM element to capture.
+     * @param fileName The name of the file to download.
      */
-    static exportDataToCSV(data: any[], filename: string = 'data-export.csv'): void {
-        if (!data || data.length === 0) {
-            console.warn('[ExportService] No data to export');
-            return;
-        }
-
+    async downloadPDF(elementId: string, fileName: string) {
         try {
-            // Get all unique keys from all objects to form headers
-            const allKeys = Array.from(new Set(data.flatMap(Object.keys)));
+            const element = document.getElementById(elementId);
+            if (!element) throw new Error(`Element with ID '${elementId}' not found`);
 
-            // Create CSV header row
-            const headerRow = allKeys.join(',');
+            const canvas = await html2canvas(element, { scale: 2, useCORS: true, backgroundColor: '#ffffff' });
+            const imgData = canvas.toDataURL('image/png');
 
-            // Create CSV body rows
-            const rows = data.map(row => {
-                return allKeys.map(key => {
-                    const value = row[key];
-                    // Handle strings with commas or newlines by wrapping in quotes
-                    if (typeof value === 'string' && (value.includes(',') || value.includes('\n'))) {
-                        return `"${value.replace(/"/g, '""')}"`;
-                    }
-                    // Handle null/undefined
-                    if (value === null || value === undefined) {
-                        return '';
-                    }
-                    return value;
-                }).join(',');
-            });
+            // A4 dimensions in mm
+            const pdfWidth = 210;
+            const pdfHeight = 297;
 
-            const csvContent = [headerRow, ...rows].join('\n');
-            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-            const link = document.createElement('a');
+            const imgProps = canvas.width / canvas.height;
+            const printWidth = pdfWidth - 20; // 10mm margin each side
+            const printHeight = printWidth / imgProps;
 
-            if (link.download !== undefined) {
-                const url = URL.createObjectURL(blob);
-                link.setAttribute('href', url);
-                link.setAttribute('download', filename);
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            }
+            const pdf = new jsPDF('p', 'mm', 'a4');
 
-            console.log(`[ExportService] CSV exported successfully: ${filename}`);
+            // Header
+            pdf.setFontSize(14);
+            pdf.text(fileName, 10, 15);
+
+            pdf.setFontSize(9);
+            pdf.setTextColor(100);
+            pdf.text(`Generated by InsightEngine - ${new Date().toLocaleDateString()}`, 10, 22);
+
+            // Image
+            pdf.addImage(imgData, 'PNG', 10, 30, printWidth, printHeight);
+
+            // Footer
+            pdf.setFontSize(8);
+            pdf.setTextColor(150);
+            pdf.text('Confidential - Internal Use Only', 10, 290);
+
+            pdf.save(`${fileName}.pdf`);
         } catch (error) {
-            console.error('[ExportService] CSV export failed:', error);
+            console.error('Export PDF failed:', error);
             throw error;
         }
+    },
+
+    /**
+     * Export data array to CSV.
+     * @param data Array of objects.
+     * @param fileName File name.
+     */
+    exportDataToCSV(data: any[], fileName: string) {
+        if (!data || !data.length) return;
+
+        const headers = Object.keys(data[0]);
+        const csvContent = [
+            headers.join(','), // Header row
+            ...data.map(row => headers.map(header => {
+                const val = row[header];
+                // Handle strings with commas or newlines
+                if (typeof val === 'string' && (val.includes(',') || val.includes('\n'))) {
+                    return `"${val.replace(/"/g, '""')}"`;
+                }
+                return val;
+            }).join(','))
+        ].join('\n');
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        if (link.download !== undefined) {
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', fileName.endsWith('.csv') ? fileName : `${fileName}.csv`);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
     }
-}
+};

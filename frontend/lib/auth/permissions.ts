@@ -82,10 +82,10 @@ export async function hasPermission(
 
     if (!role) return false;
 
-    const rolePermissions = PERMISSIONS[role];
+    const rolePermissions: readonly string[] = PERMISSIONS[role];
 
     // OWNER has all permissions
-    if (rolePermissions.includes('*')) return true;
+    if ((rolePermissions as readonly string[]).includes('*')) return true;
 
     // Check if role has the specific permission
     if (rolePermissions.includes(permission)) return true;

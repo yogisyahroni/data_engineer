@@ -24,35 +24,39 @@ model User {
   collections   Collection[]
   queries       SavedQuery[]
   dashboards    Dashboard[]
-  stories       Story[]
+  stories       Story[] // Legacy storytelling model
+  canvases      Canvas[]              @relation("CanvasCreator")
   metrics       Metric[]
   dimensions    Dimension[]
   relationships VirtualRelationship[]
-  
+
   // Security
-  rlsPolicies   RLSPolicy[]
-  
+  rlsPolicies RLSPolicy[]
+
   // Alerts
-  alerts        Alert[]
-  
+  alerts Alert[]
+
   // Dataflows
-  dataflows     Dataflow[]
-  
+  dataflows Dataflow[]
+
   // Sharings
-  shareLinks    ShareLink[]
-  
+  shareLinks ShareLink[]
+
   // Comments
-  comments      Comment[]
-  
+  comments Comment[]
+
   // Activities
-  activities    Activity[]
-  
+  activities Activity[]
+
   // Versions
   queryVersions     QueryVersion[]
   dashboardVersions DashboardVersion[]
 
   // API Keys
-  apiKeys           ApiKey[]
+  apiKeys ApiKey[]
+
+  // Agents
+  agents Agent[]
 }
 
 model Connection {
@@ -75,12 +79,13 @@ model Connection {
   metrics       Metric[]
   dimensions    Dimension[]
   relationships VirtualRelationship[]
-  
+
   // Security
-  rlsPolicies   RLSPolicy[] // Inverse relation
-  
-  createdAt     DateTime              @default(now())
-  updatedAt     DateTime              @updatedAt
+  rlsPolicies      RLSPolicy[] // Inverse relation
+  modelDefinitions ModelDefinition[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Collection {
@@ -95,7 +100,8 @@ model Collection {
   children    Collection[] @relation("CollectionHierarchy")
   queries     SavedQuery[]
   dashboards  Dashboard[]
-  stories     Story[]
+  stories     Story[] // Legacy storytelling model
+  canvases    Canvas[]
   metrics     Metric[]
   dimensions  Dimension[]
   isPublic    Boolean      @default(false)
@@ -124,6 +130,9 @@ model SavedQuery {
   versions            QueryVersion[]
   createdAt           DateTime        @default(now())
   updatedAt           DateTime        @updatedAt
+  QueryFeed           QueryFeed[]
+  BusinessMetric      BusinessMetric? @relation(fields: [businessMetricId], references: [id])
+  businessMetricId    String?
 }
 
 model Dashboard {
@@ -138,13 +147,18 @@ model Dashboard {
   // Workspace relationship
   workspaces WorkspaceDashboard[]
 
-  cards     DashboardCard[]
-  filters   Json?
-  isPublic  Boolean         @default(false)
+  cards      DashboardCard[]
+  filters    Json?
+  isPublic   Boolean            @default(false)
   shareLinks ShareLink[]
+  appPages   AppPage[]
   versions   DashboardVersion[]
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
+  createdAt  DateTime           @default(now())
+  updatedAt  DateTime           @updatedAt
+
+  @@index([collectionId])
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model DashboardCard {
@@ -160,8 +174,8 @@ model DashboardCard {
   visualizationConfig Json?
   createdAt           DateTime    @default(now())
   updatedAt           DateTime    @updatedAt
-  
-  comments            Comment[]
+
+  comments Comment[]
 }
 
 model Story {
@@ -255,9 +269,15 @@ model Workspace {
   members     WorkspaceMember[]
   connections WorkspaceConnection[]
   dashboards  WorkspaceDashboard[]
-  
+
   // Security
-  rlsPolicies RLSPolicy[]
+  rlsPolicies      RLSPolicy[]
+  modelDefinitions ModelDefinition[]
+  canvases         Canvas[]
+  dataApps         DataApp[]
+  pipelines        Pipeline[]
+
+  theme Theme?
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -304,6 +324,78 @@ model WorkspaceDashboard {
   @@unique([workspaceId, dashboardId])
 }
 
+// ========================================
+// Phase 19: Data Pipelines (ETL)
+// ========================================
+
+model Pipeline {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  // Source Configuration
+  sourceType   String // POSTGRES, REST_API, CSV
+  sourceConfig Json // Connection details, query, API endpoint
+
+  // ELT vs ETL
+  mode                String @default("ELT") // "ETL" | "ELT"
+  transformationSteps Json? // Array of TransformationStep
+
+  // Quality Rules
+  qualityRules QualityRule[]
+
+  // Destination Configuration
+  destinationType   String @default("INTERNAL_RAW") // INTERNAL_RAW, POSTGRES, SNOWFLAKE
+  destinationConfig Json? // If external
+
+  // Schedule
+  scheduleCron String? // e.g., "0 * * * *" (Every hour)
+  isActive     Boolean @default(true)
+
+  lastRunAt  DateTime?
+  lastStatus String? // SUCCESS, FAILED
+
+  executions JobExecution[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workspaceId])
+}
+
+model JobExecution {
+  id         String   @id @default(cuid())
+  pipelineId String
+  pipeline   Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+
+  status      String // PENDING, PROCESSING, COMPLETED, FAILED
+  startedAt   DateTime  @default(now())
+  completedAt DateTime?
+  durationMs  Int?
+
+  rowsProcessed Int     @default(0)
+  error         String?
+  logs          Json? // Array of log strings
+}
+
+model RawData {
+  id         String @id @default(cuid())
+  pipelineId String
+
+  // Flexible storage
+  data       Json // The actual row data
+  ingestedAt DateTime @default(now())
+
+  // Optional metadata columns for faster querying
+  metaKey String? // e.g., OrderID
+  metaTag String? // e.g., "2023-Q1"
+
+  @@index([pipelineId])
+  @@index([ingestedAt])
+}
+
 // Enums
 enum WorkspacePlan {
   FREE
@@ -313,6 +405,7 @@ enum WorkspacePlan {
 
 enum Role {
   VIEWER // Read-only access
+  EDITOR // Can create content (Dashboards, Queries)
   ADMIN // Manage connections, invite users
   OWNER // Full control (only one per workspace)
 }
@@ -322,28 +415,28 @@ enum Role {
 // ========================================
 
 model RLSPolicy {
-  id           String     @id @default(cuid())
-  name         String
-  description  String?
-  
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+
   // Scope
   workspaceId  String
   workspace    Workspace  @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   connectionId String
   connection   Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
-  tableName    String     // The table this policy applies to
-  
+  tableName    String // The table this policy applies to
+
   // Target (Apply to WHO?)
-  role         Role?      // e.g., 'VIEWER'
-  userId       String?    // Apply to specific user (OVERRIDE)
-  user         User?      @relation(fields: [userId], references: [id])
-  
+  role   Role? // e.g., 'VIEWER'
+  userId String? // Apply to specific user (OVERRIDE)
+  user   User?   @relation(fields: [userId], references: [id])
+
   // Rule
-  condition    String     // SQL WHERE clause (e.g. "region = 'East'")
-  isActive     Boolean    @default(true)
-  
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  condition String // SQL WHERE clause (e.g. "region = 'East'")
+  isActive  Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([workspaceId])
   @@index([connectionId, tableName])
@@ -354,54 +447,54 @@ model RLSPolicy {
 // ========================================
 
 model Alert {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   name        String
   description String?
-  
+
   // What to check (link to Saved Query)
-  queryId     String
-  query       SavedQuery @relation(fields: [queryId], references: [id], onDelete: Cascade)
-  
+  queryId String
+  query   SavedQuery @relation(fields: [queryId], references: [id], onDelete: Cascade)
+
   // Condition Logic (Simple threshold for MVP)
   // e.g. If "revenue" > 5000
-  column      String
-  operator    String   // >, <, =, >=, <=, !=
-  threshold   Float
-  
+  column    String
+  operator  String // >, <, =, >=, <=, !=
+  threshold Float
+
   // Schedule
-  schedule    String   // "hourly", "daily", "weekly", or cron string
-  isActive    Boolean  @default(true)
-  
+  schedule String // "hourly", "daily", "weekly", or cron string
+  isActive Boolean @default(true)
+
   // Notification
-  email       String   // Recipient email(s), comma separated
-  
+  email String // Recipient email(s), comma separated
+
   // State
-  lastRunAt   DateTime?
-  lastStatus  String?  // "OK", "TRIGGERED", "ERROR"
-  
+  lastRunAt  DateTime?
+  lastStatus String? // "OK", "TRIGGERED", "ERROR"
+
   // Ownership
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  
-  history     AlertHistory[]
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  history AlertHistory[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
   @@index([userId])
   @@index([queryId])
 }
 
 model AlertHistory {
-  id          String   @id @default(cuid())
-  alertId     String
-  alert       Alert    @relation(fields: [alertId], references: [id], onDelete: Cascade)
-  
-  status      String   // "TRIGGERED", "OK", "ERROR"
-  value       Float?   // The actual value that was checked
-  message     String?  // Details or error message
-  
-  executedAt  DateTime @default(now())
+  id      String @id @default(cuid())
+  alertId String
+  alert   Alert  @relation(fields: [alertId], references: [id], onDelete: Cascade)
+
+  status  String // "TRIGGERED", "OK", "ERROR"
+  value   Float? // The actual value that was checked
+  message String? // Details or error message
+
+  executedAt DateTime @default(now())
 
   @@index([alertId])
 }
@@ -411,56 +504,78 @@ model AlertHistory {
 // ========================================
 
 model Dataflow {
-  id          String   @id @default(cuid())
+  id          String  @id @default(cuid())
   name        String
   description String?
-  schedule    String?  // Cron expression (e.g. "0 9 * * *")
-  isActive    Boolean  @default(true)
+  schedule    String? // Cron expression (e.g. "0 9 * * *")
+  isActive    Boolean @default(true)
 
-  steps       DataflowStep[]
-  runs        DataflowRun[]
+  steps DataflowStep[]
+  runs  DataflowRun[]
 
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
 }
 
 model DataflowStep {
-  id          String   @id @default(cuid())
-  dataflowId  String
-  dataflow    Dataflow @relation(fields: [dataflowId], references: [id], onDelete: Cascade)
-  order       Int
+  id         String   @id @default(cuid())
+  dataflowId String
+  dataflow   Dataflow @relation(fields: [dataflowId], references: [id], onDelete: Cascade)
+  order      Int
 
-  type        String   // "QUERY", "MATERIALIZE"
-  name        String
+  type String // "QUERY", "MATERIALIZE"
+  name String
 
   // Configuration
   // QUERY: { sql: "...", connectionId: "..." }
   // MATERIALIZE: { sourceStepId: "...", targetTable: "...", connectionId: "...", mode: "overwrite|append" }
-  config      Json
+  config Json
 
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([dataflowId])
 }
 
 model DataflowRun {
-  id          String   @id @default(cuid())
-  dataflowId  String
-  dataflow    Dataflow @relation(fields: [dataflowId], references: [id], onDelete: Cascade)
+  id         String   @id @default(cuid())
+  dataflowId String
+  dataflow   Dataflow @relation(fields: [dataflowId], references: [id], onDelete: Cascade)
 
-  status      String   // "RUNNING", "COMPLETED", "FAILED"
-  startedAt   DateTime @default(now())
+  status      String // "RUNNING", "COMPLETED", "FAILED"
+  startedAt   DateTime  @default(now())
   completedAt DateTime?
   error       String?
-  logs        Json?    // Detailed execution log per step
+  logs        Json? // Detailed execution log per step
 
   @@index([dataflowId])
+}
+
+// ========================================
+// Phase 21: Data Quality (QualityRule)
+// ========================================
+
+model QualityRule {
+  id         String   @id @default(cuid())
+  pipelineId String
+  pipeline   Pipeline @relation(fields: [pipelineId], references: [id], onDelete: Cascade)
+
+  column   String
+  ruleType String // NOT_NULL, UNIQUE, RANGE, REGEX
+  value    String? // validation parameter (e.g. min,max for range, or regex pattern)
+  severity String  @default("WARN") // WARN, FAIL
+
+  description String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([pipelineId])
 }
 
 // ========================================
@@ -468,34 +583,68 @@ model DataflowRun {
 // ========================================
 
 model ShareLink {
-  id          String   @id @default(cuid())
-  token       String   @unique // The secure URL slug (NanoID)
-  
+  id    String @id @default(cuid())
+  token String @unique // The secure URL slug (NanoID)
+
   // Resource Pointers (Polymorphic-ish)
-  resourceType String  // "DASHBOARD" | "QUERY"
-  
+  resourceType String // "DASHBOARD" | "QUERY"
+
   dashboardId String?
   dashboard   Dashboard? @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
-  
-  queryId     String?
-  query       SavedQuery? @relation(fields: [queryId], references: [id], onDelete: Cascade)
-  
+
+  queryId String?
+  query   SavedQuery? @relation(fields: [queryId], references: [id], onDelete: Cascade)
+
   // Security Config
-  password    String?  // Optional password protection (hashed)
-  expiresAt   DateTime?
-  
+  password  String? // Optional password protection (hashed)
+  expiresAt DateTime?
+
   // Analytics
-  viewCount   Int      @default(0)
+  viewCount    Int       @default(0)
   lastViewedAt DateTime?
-  
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  feeds QueryFeed[]
+
+  // Phase 25: Governance for Catalog
+  certificationStatus String   @default("draft") // draft, verified, deprecated
+  certifiedBy         String? // userId
+  businessGlossary    String? // Rich text description
+  tags                String[] // Enhanced tagging
+
+  // Relations
+  businessMetrics BusinessMetric[]
 
   @@index([token])
   @@index([userId])
+  @@index([certificationStatus])
+}
+
+// ========================================
+// PHASE 25: GOVERNANCE
+// ========================================
+
+model BusinessMetric {
+  id          String   @id @default(cuid())
+  name        String
+  description String   @db.Text
+  formula     String // e.g. "COUNT(churned) / COUNT(total)"
+  ownerId     String
+  status      String   @default("draft") // draft, verified, deprecated
+  tags        String[]
+
+  // Link to specific queries that implement this metric
+  queries SavedQuery[]
+
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  ShareLink   ShareLink? @relation(fields: [shareLinkId], references: [id])
+  shareLinkId String?
 }
 
 // ========================================
@@ -503,42 +652,42 @@ model ShareLink {
 // ========================================
 
 model Comment {
-  id          String   @id @default(cuid())
-  content     String   @db.Text
-  
+  id      String @id @default(cuid())
+  content String @db.Text
+
   // Resource Polymorphism (MVP: DashboardCard only)
   dashboardCardId String
   dashboardCard   DashboardCard @relation(fields: [dashboardCardId], references: [id], onDelete: Cascade)
-  
+
   // Threading
-  parentId    String?
-  parent      Comment? @relation("CommentThread", fields: [parentId], references: [id])
-  replies     Comment[] @relation("CommentThread")
-  
+  parentId String?
+  parent   Comment?  @relation("CommentThread", fields: [parentId], references: [id])
+  replies  Comment[] @relation("CommentThread")
+
   // State
-  isResolved  Boolean  @default(false)
-  
+  isResolved Boolean @default(false)
+
   // Author
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([dashboardCardId])
   @@index([userId])
 }
 
 model Activity {
-  id          String   @id @default(cuid())
-  type        String   // "COMMENT", "ALERT", "CREATE", "MENTION"
+  id          String @id @default(cuid())
+  type        String // "COMMENT", "ALERT", "CREATE", "MENTION"
   description String
-  metadata    Json?    // Context (e.g. { dashboardId: "..." })
-  
-  userId      String
-  user        User     @relation(fields: [userId], references: [id])
-  
-  createdAt   DateTime @default(now())
+  metadata    Json? // Context (e.g. { dashboardId: "..." })
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
 
   @@index([userId])
   @@index([type])
@@ -549,24 +698,24 @@ model Activity {
 // ========================================
 
 model ApiKey {
-  id          String    @id @default(cuid())
-  name        String
-  prefix      String    // First few chars for display (e.g. "sk_...")
-  key         String    @unique // Hashed full key
-  
+  id     String @id @default(cuid())
+  name   String
+  prefix String // First few chars for display (e.g. "sk_...")
+  key    String @unique // Hashed full key
+
   // Permissions
-  scopes      String[]  @default(["read", "write"]) // implementation specific
-  
+  scopes String[] @default(["read", "write"]) // implementation specific
+
   // Lifecycle
-  expiresAt   DateTime?
-  lastUsedAt  DateTime?
-  isActive    Boolean   @default(true)
-  
-  userId      String
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  expiresAt  DateTime?
+  lastUsedAt DateTime?
+  isActive   Boolean   @default(true)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([userId])
   @@index([key])
@@ -577,22 +726,22 @@ model ApiKey {
 // ========================================
 
 model QueryVersion {
-  id                  String     @id @default(cuid())
-  queryId             String
-  query               SavedQuery @relation(fields: [queryId], references: [id], onDelete: Cascade)
-  
+  id      String     @id @default(cuid())
+  queryId String
+  query   SavedQuery @relation(fields: [queryId], references: [id], onDelete: Cascade)
+
   // Snapshot Data
   sql                 String
   visualizationConfig Json?
-  
+
   // Metadata
-  versionNumber       Int?       // Sequential version number (optional for MVP)
-  changeLog           String?    // Auto-generated description of change
-  
-  createdBy           String
-  user                User       @relation(fields: [createdBy], references: [id])
-  
-  createdAt           DateTime   @default(now())
+  versionNumber Int? // Sequential version number (optional for MVP)
+  changeLog     String? // Auto-generated description of change
+
+  createdBy String
+  user      User   @relation(fields: [createdBy], references: [id])
+
+  createdAt DateTime @default(now())
 
   @@index([queryId])
 }
@@ -601,14 +750,251 @@ model DashboardVersion {
   id          String    @id @default(cuid())
   dashboardId String
   dashboard   Dashboard @relation(fields: [dashboardId], references: [id], onDelete: Cascade)
-  
+
   // Snapshot Data (Full JSON dump of cards)
-  cards       Json
-  
-  createdBy   String
-  user        User      @relation(fields: [createdBy], references: [id])
-  
-  createdAt   DateTime  @default(now())
+  cards Json
+
+  createdBy String
+  user      User   @relation(fields: [createdBy], references: [id])
+
+  createdAt DateTime @default(now())
 
   @@index([dashboardId])
+}
+
+// ========================================
+// Advanced Modeling (Phase 13.0)
+// ========================================
+
+model ModelDefinition {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+
+  // Data Source
+  connectionId String
+  connection   Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade)
+
+  // The 'Source of Truth'
+  tableName String? // If mapping directly to a table
+  sqlQuery  String? // If mapping to a constructed SQL View
+
+  // Configuration (Aliases, Visibility, Formatting)
+  // { 'col_name': { 'alias': 'Revenue', 'hidden': false, 'format': 'currency' } }
+  columnMetadata Json?
+
+  // Relationships to our new Virtual Fields
+  virtualMetrics VirtualMetric[]
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workspaceId])
+  @@index([connectionId])
+}
+
+model VirtualMetric {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+
+  // The Math
+  expression String // e.g. '(\ - \) / \'
+  format     String? // 'percent', 'currency', 'number'
+
+  modelId String
+  model   ModelDefinition @relation(fields: [modelId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([modelId])
+}
+
+// ============================================================
+// PHASE 14: CANVAS & STORYTELLING
+// ============================================================
+
+model Canvas {
+  id          String  @id @default(cuid())
+  name        String
+  description String?
+
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  // Layout configuration
+  layout   String @default("free") // 'free' | 'grid'
+  gridSize Int    @default(8) // 8px or 12px snap grid
+
+  // Widgets
+  widgets CanvasWidget[]
+
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  createdBy    String
+  creator      User        @relation("CanvasCreator", fields: [createdBy], references: [id])
+  Collection   Collection? @relation(fields: [collectionId], references: [id])
+  collectionId String?
+
+  @@index([workspaceId])
+  @@index([createdBy])
+}
+
+model CanvasWidget {
+  id       String @id @default(cuid())
+  canvasId String
+  canvas   Canvas @relation(fields: [canvasId], references: [id], onDelete: Cascade)
+
+  type String // 'text' | 'image' | 'chart' | 'metric' | 'filter' | 'divider'
+
+  // Position (pixels)
+  x      Int
+  y      Int
+  width  Int
+  height Int
+  zIndex Int @default(0)
+
+  // Widget-specific configuration (JSON)
+  config Json
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([canvasId])
+}
+
+// ============================================================
+// PHASE 16: DYNAMIC AGENTS
+// ============================================================
+
+model Agent {
+  id             String  @id @default(cuid())
+  name           String
+  description    String?
+  modelId        String
+  promptTemplate String  @db.Text
+  scheduleCron   String
+
+  // Configuration for data fetching
+  metricConfig Json // Stores AggregationRequest
+
+  // Notifications
+  emailTo String
+
+  // State
+  lastRunAt DateTime?
+  isActive  Boolean   @default(true)
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+// ============================================================
+// PHASE 17: DATA APPS
+// ============================================================
+
+model DataApp {
+  id          String  @id @default(cuid())
+  name        String
+  slug        String  @unique // Global uniqueness for routing
+  description String?
+
+  // Branding
+  logoUrl     String?
+  themeConfig Json? // { primaryColor: '#...', fontFamily: '...' }
+
+  // Settings
+  isPublished  Boolean @default(false)
+  customDomain String? @unique
+
+  // Content
+  pages AppPage[]
+
+  // Ownership
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workspaceId])
+  @@index([slug])
+}
+
+model AppPage {
+  id    String  @id @default(cuid())
+  appId String
+  app   DataApp @relation(fields: [appId], references: [id], onDelete: Cascade)
+
+  title String
+  slug  String
+  order Int     @default(0)
+  icon  String? // Lucide icon name
+
+  // Content Type
+  type String @default("DASHBOARD") // DASHBOARD | URL | MARKDOWN
+
+  // Linked Resource
+  dashboardId String?
+  dashboard   Dashboard? @relation(fields: [dashboardId], references: [id])
+
+  externalUrl String?
+  content     String? @db.Text // Markdown or HTML
+
+  isHidden Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([appId, slug])
+  @@index([appId])
+}
+
+model QueryFeed {
+  id             String     @id @default(cuid())
+  queryId        String
+  query          SavedQuery @relation(fields: [queryId], references: [id], onDelete: Cascade)
+  token          String     @unique @default(uuid())
+  name           String? // e.g. "Q3 Financials for Excel"
+  format         String     @default("csv") // csv, json
+  isEnabled      Boolean    @default(true)
+  expiresAt      DateTime?
+  createdBy      String
+  createdAt      DateTime   @default(now())
+  lastAccessedAt DateTime?
+  ShareLink      ShareLink? @relation(fields: [shareLinkId], references: [id])
+  shareLinkId    String?
+
+  @@index([queryId])
+  @@index([token])
+}
+
+// ============================================================
+// PHASE 23: THEMING & CUSTOMIZATION
+// ============================================================
+
+model Theme {
+  id          String    @id @default(cuid())
+  workspaceId String    @unique
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  primaryColor String  @default("#7c3aed") // Violet-600 default
+  radius       Float   @default(0.5) // rem
+  fontFamily   String  @default("Inter")
+  chartPalette Json? // Array of hex strings ["#...", "#..."]
+  darkMode     Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([workspaceId])
 }

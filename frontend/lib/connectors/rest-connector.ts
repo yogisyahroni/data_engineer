@@ -130,7 +130,7 @@ export class RESTConnector extends BaseConnector {
         const alasql = await import('alasql');
         alasql.default.tables[tableName] = { data };
 
-        const result = alasql.default(sql);
+        const result = alasql.default(sql) as any[];
         const executionTime = Date.now() - startTime;
 
         const columns = result.length > 0 ? Object.keys(result[0]) : [];
@@ -186,6 +186,16 @@ export class RESTConnector extends BaseConnector {
     async disconnect(): Promise<void> {
         this.cachedData = [];
         this.endpoints.clear();
+    }
+
+    async *extractData(config: { endpoint: string; paginationType?: 'none' | 'page' | 'cursor' }): AsyncGenerator<any[], void, unknown> {
+        // Simple extraction: Calls endpoint once. 
+        // Real ETL would loop through pages.
+
+        const data = await this.fetchEndpoint(config.endpoint);
+
+        // Return as a single batch for now (MVP)
+        yield data;
     }
 
     validateConfig(): { valid: boolean; errors: string[] } {

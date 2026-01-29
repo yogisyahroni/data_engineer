@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { Sparkles, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -21,6 +22,7 @@ import {
     SelectValue,
 } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { validateExpression } from '@/lib/semantic/expression-validator';
 
 interface CalculatedField {
     id?: string;
@@ -35,6 +37,8 @@ interface CreateCalculatedFieldDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     connectionId: string;
+    modelId?: string;
+    existingMetrics?: string[];
     onSave: (field: CalculatedField) => Promise<void>;
 }
 
@@ -42,6 +46,8 @@ export function CreateCalculatedFieldDialog({
     open,
     onOpenChange,
     connectionId,
+    modelId,
+    existingMetrics = [],
     onSave
 }: CreateCalculatedFieldDialogProps) {
     const [name, setName] = useState('');
@@ -50,10 +56,20 @@ export function CreateCalculatedFieldDialog({
     const [type, setType] = useState<'column' | 'measure'>('measure');
     const [dataType, setDataType] = useState<'number' | 'string' | 'date' | 'boolean'>('number');
     const [saving, setSaving] = useState(false);
+    const [generating, setGenerating] = useState(false);
+    const [aiPrompt, setAiPrompt] = useState('');
+    const [showAiPrompt, setShowAiPrompt] = useState(false);
 
     const handleSave = async () => {
         if (!name || !expression) {
             toast.error('Name and expression are required');
+            return;
+        }
+
+        // Validate Expression
+        const validation = validateExpression(expression, existingMetrics);
+        if (!validation.valid) {
+            toast.error(validation.error || 'Invalid expression');
             return;
         }
 
@@ -78,6 +94,48 @@ export function CreateCalculatedFieldDialog({
             toast.error(error.message || 'Failed to create calculated field');
         } finally {
             setSaving(false);
+        }
+    };
+
+    const handleGenerateWithAI = async () => {
+        if (!modelId) {
+            toast.error('Model ID is required for AI generation');
+            return;
+        }
+
+        if (!aiPrompt.trim()) {
+            toast.error('Please describe the metric you want to create');
+            return;
+        }
+
+        setGenerating(true);
+        try {
+            const res = await fetch('/api/ai/generate-formula', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    prompt: aiPrompt,
+                    modelId
+                })
+            });
+
+            if (!res.ok) {
+                const error = await res.json();
+                throw new Error(error.error || 'Failed to generate formula');
+            }
+
+            const data = await res.json();
+            setExpression(data.expression);
+            if (data.explanation) {
+                setDescription(data.explanation);
+            }
+            toast.success('Formula generated successfully');
+            setShowAiPrompt(false);
+            setAiPrompt('');
+        } catch (error: any) {
+            toast.error(error.message || 'Failed to generate formula');
+        } finally {
+            setGenerating(false);
         }
     };
 
@@ -136,7 +194,59 @@ export function CreateCalculatedFieldDialog({
                     </div>
 
                     <div className="space-y-2">
-                        <Label htmlFor="expression">Expression (SQL)</Label>
+                        <div className="flex items-center justify-between">
+                            <Label htmlFor="expression">Expression (SQL)</Label>
+                            {modelId && (
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setShowAiPrompt(!showAiPrompt)}
+                                    className="h-7 text-xs"
+                                >
+                                    <Sparkles className="w-3 h-3 mr-1" />
+                                    Generate with AI
+                                </Button>
+                            )}
+                        </div>
+
+                        {showAiPrompt && (
+                            <div className="p-3 bg-muted/50 rounded-lg border border-border space-y-2">
+                                <Label htmlFor="ai-prompt" className="text-xs">Describe your metric</Label>
+                                <Input
+                                    id="ai-prompt"
+                                    placeholder="e.g., profit margin as percentage"
+                                    value={aiPrompt}
+                                    onChange={(e) => setAiPrompt(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !generating) {
+                                            handleGenerateWithAI();
+                                        }
+                                    }}
+                                    className="text-sm"
+                                />
+                                <Button
+                                    type="button"
+                                    size="sm"
+                                    onClick={handleGenerateWithAI}
+                                    disabled={generating}
+                                    className="w-full h-7 text-xs"
+                                >
+                                    {generating ? (
+                                        <>
+                                            <Loader2 className="w-3 h-3 mr-1 animate-spin" />
+                                            Generating...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Sparkles className="w-3 h-3 mr-1" />
+                                            Generate
+                                        </>
+                                    )}
+                                </Button>
+                            </div>
+                        )}
+
                         <Textarea
                             id="expression"
                             placeholder="e.g., SUM(amount * quantity)"
@@ -146,7 +256,7 @@ export function CreateCalculatedFieldDialog({
                             className="font-mono text-sm"
                         />
                         <p className="text-xs text-muted-foreground">
-                            Use SQL syntax. Examples: SUM(price * quantity), CONCAT(first_name, ' ', last_name)
+                            Use SQL syntax. Variables: {'${MetricName}'}. Examples: SUM(price * quantity), ({'${Revenue}'} - {'${Cost}'})
                         </p>
                     </div>
 

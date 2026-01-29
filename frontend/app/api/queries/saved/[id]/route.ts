@@ -29,7 +29,10 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
         if (!session?.user?.id) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
         const body = await req.json();
-        const { name, description, sql, visualizationConfig, pinned, tags } = body;
+        const {
+            name, description, sql, visualizationConfig, pinned, tags,
+            certificationStatus, certifiedBy, businessGlossary
+        } = body;
 
         const currentQuery = await db.savedQuery.findUnique({ where: { id: params.id } });
         if (!currentQuery) return NextResponse.json({ error: 'Not found' }, { status: 404 });
