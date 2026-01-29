@@ -98,6 +98,46 @@ export async function GET(req: NextRequest) {
                     } else {
                         console.log('[MOCK EMAIL] Alert Triggered:', alert.name, 'Value:', value);
                     }
+
+                    // Webhook Trigger (Phase 27)
+                    if (alert.webhookUrl) {
+                        try {
+                            const headers = (alert.webhookHeaders as Record<string, string>) || { 'Content-Type': 'application/json' };
+
+                            // Check if configured headers lack Content-Type, default to JSON
+                            if (!Object.keys(headers).some(k => k.toLowerCase() === 'content-type')) {
+                                headers['Content-Type'] = 'application/json';
+                            }
+
+                            const response = await fetch(alert.webhookUrl, {
+                                method: 'POST',
+                                headers: headers,
+                                body: JSON.stringify({
+                                    event: 'alert_triggered',
+                                    alertId: alert.id,
+                                    alertName: alert.name,
+                                    timestamp: new Date().toISOString(),
+                                    condition: {
+                                        column: alert.column,
+                                        operator: alert.operator,
+                                        threshold: alert.threshold,
+                                        actualValue: value
+                                    },
+                                    query: {
+                                        id: alert.query.id,
+                                        name: alert.query.name
+                                    }
+                                })
+                            });
+
+                            if (!response.ok) {
+                                console.error(`Webhook failed: ${response.status} ${response.statusText}`);
+                            }
+                        } catch (webhookError) {
+                            console.error('Webhook execution error:', webhookError);
+                            // We don't fail the entire alert process for a webhook failure, but catch it here
+                        }
+                    }
                 }
 
                 // 6. Update History & State

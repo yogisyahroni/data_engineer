@@ -42,7 +42,10 @@ export function AlertBuilderDialog({
     const [column, setColumn] = useState('');
     const [operator, setOperator] = useState('>');
     const [threshold, setThreshold] = useState('');
+
     const [email, setEmail] = useState('');
+    const [webhookUrl, setWebhookUrl] = useState('');
+    const [webhookHeaders, setWebhookHeaders] = useState('{}');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     const handleSubmit = async () => {
@@ -63,7 +66,10 @@ export function AlertBuilderDialog({
                     operator,
                     threshold: Number(threshold),
                     schedule: 'hourly', // Default for MVP
-                    email
+                    schedule: 'hourly', // Default for MVP
+                    email,
+                    webhookUrl,
+                    webhookHeaders: JSON.parse(webhookHeaders || '{}')
                 })
             });
 
@@ -163,6 +169,31 @@ export function AlertBuilderDialog({
                         <p className="text-xs text-muted-foreground">
                             We'll verify this condition every hour.
                         </p>
+                    </div>
+
+                    <div className="space-y-4 pt-4 border-t">
+                        <h4 className="text-sm font-medium">Advanced Actions</h4>
+                        <div className="space-y-2">
+                            <Label>Webhook URL (Optional)</Label>
+                            <Input
+                                placeholder="https://api.yourdomain.com/hooks/alert"
+                                value={webhookUrl}
+                                onChange={(e) => setWebhookUrl(e.target.value)}
+                            />
+                        </div>
+
+                        <div className="space-y-2">
+                            <Label>Webhook Headers (JSON)</Label>
+                            <Textarea
+                                placeholder='{"Authorization": "Bearer token"}'
+                                value={webhookHeaders}
+                                onChange={(e) => setWebhookHeaders(e.target.value)}
+                                className="font-mono text-xs"
+                            />
+                            <p className="text-xs text-muted-foreground">
+                                Valid JSON object for custom request headers.
+                            </p>
+                        </div>
                     </div>
                 </div>
 

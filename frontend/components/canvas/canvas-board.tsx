@@ -6,7 +6,7 @@ import { useResizeObserver } from 'usehooks-ts';
 import { Loader2, GripHorizontal, Trash2, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { TextWidget, ImageWidget, ChartWidget, MetricWidget, FilterWidget } from './widgets';
+import { TextWidget, ImageWidget, ChartWidget, MetricWidget, FilterWidget, ActionWidget } from './widgets';
 
 export type CanvasWidget = {
     id: string;
@@ -34,6 +34,8 @@ const WidgetRenderer = ({ widget, readOnly, onUpdate }: { widget: CanvasWidget, 
             return <MetricWidget {...commonProps} />;
         case 'filter':
             return <FilterWidget {...commonProps} />;
+        case 'action':
+            return <ActionWidget {...commonProps} />;
         case 'divider':
             return <div className="w-full h-full flex items-center justify-center"><div className="w-full h-px bg-border" /></div>;
         default:

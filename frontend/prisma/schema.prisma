@@ -57,6 +57,10 @@ model User {
 
   // Agents
   agents Agent[]
+
+  // Native Features (Phase 26.2)
+  pushSubscriptions PushSubscription[]
+  authenticators    Authenticator[]
 }
 
 model Connection {
@@ -467,6 +471,10 @@ model Alert {
 
   // Notification
   email String // Recipient email(s), comma separated
+  
+  // Webhook (Phase 27)
+  webhookUrl     String?  // Optional URL to POST data to
+  webhookHeaders Json?    // Optional headers { "Authorization": "Bearer ..." }
 
   // State
   lastRunAt  DateTime?
@@ -997,4 +1005,33 @@ model Theme {
   updatedAt DateTime @updatedAt
 
   @@index([workspaceId])
+}
+
+// ========================================
+// Phase 26.2: Native PWA Features
+// ========================================
+
+model PushSubscription {
+  id        String   @id @default(cuid())
+  endpoint  String   @unique
+  keys      Json     // Store p256dh and auth keys
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+}
+
+model Authenticator {
+  credentialID         String  @id
+  credentialPublicKey  Bytes
+  counter              BigInt
+  credentialDeviceType String
+  credentialBackedUp   Boolean
+  transports           String?
+  userId               String
+  user                 User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }

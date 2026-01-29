@@ -12,8 +12,35 @@ export const authOptions: NextAuthOptions = {
             credentials: {
                 email: { label: 'Email', type: 'email' },
                 password: { label: 'Password', type: 'password' },
+                webauthn_token: { label: 'WebAuthn Token', type: 'text' }, // Hidden field for internal use
             },
             async authorize(credentials) {
+                // 1. WebAuthn Flow
+                if (credentials?.webauthn_token) {
+                    try {
+                        const { decode } = await import('next-auth/jwt');
+                        const decoded = await decode({
+                            token: credentials.webauthn_token,
+                            secret: process.env.NEXTAUTH_SECRET || '',
+                        });
+
+                        if (decoded && decoded.usage === 'webauthn_login' && decoded.id && decoded.email) {
+                            return {
+                                id: decoded.id as string,
+                                email: decoded.email as string,
+                                name: 'User', // We should fetch name if needed, but session callback fills it from DB usually? 
+                                // Actually token.name/email comes from here. 
+                                // Better to fetch user to be safe and get full profile.
+                            };
+                        }
+                        return null;
+                    } catch (e) {
+                        console.error('WebAuthn token validation failed', e);
+                        return null;
+                    }
+                }
+
+                // 2. Standard Email/Password Flow
                 if (!credentials?.email || !credentials?.password) {
                     return null;
                 }

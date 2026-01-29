@@ -2,65 +2,46 @@
 > my-v0-project@0.1.0 build
 > next build
 
-[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
-   Γû▓ Next.js 16.0.10 (Turbopack)
+   Γû▓ Next.js 15.1.4
    - Environments: .env
 
    Creating an optimized production build ...
-[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+ Γ£ô (pwa) Compiling for server...
+ Γ£ô (pwa) Compiling for server...
+ Γ£ô (pwa) Compiling for client (static)...
+ Γùï (pwa) Service worker: E:\antigraviti google\inside engine\insight-engine-ai-ui\frontend\public\sw.js
+ Γùï (pwa)   URL: /sw.js
+ Γùï (pwa)   Scope: /
+ Γùï (pwa) Custom runtimeCaching array found, using it instead of the default one.
+ ΓÜá Compiled with warnings
 
-> Build error occurred
-Error: Turbopack build failed with 2 errors:
-./app/canvas/page.tsx:25:1
-Module not found: Can't resolve '@/hooks/use-workspace'
-  23 | import { useRouter } from 'next/navigation';
-  24 | import { toast } from 'sonner';
-> 25 | import { useWorkspace } from '@/hooks/use-workspace';
-     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  26 |
-  27 | interface Canvas {
-  28 |     id: string;
+./node_modules/bullmq/dist/esm/classes/child-processor.js
+Critical dependency: the request of a dependency is an expression
 
-Import map: aliased to relative './hooks/use-workspace' inside of [project]/
+Import trace for requested module:
+./node_modules/bullmq/dist/esm/classes/child-processor.js
+./node_modules/bullmq/dist/esm/classes/index.js
+./node_modules/bullmq/dist/esm/index.js
+./lib/queue/queue.ts
+./app/api/pipelines/[id]/run/route.ts
 
-
-Import traces:
-  Client Component Browser:
-    ./app/canvas/page.tsx [Client Component Browser]
-    ./app/canvas/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./app/canvas/page.tsx [Client Component SSR]
-    ./app/canvas/page.tsx [Server Component]
-
-https://nextjs.org/docs/messages/module-not-found
-
-
-./app/docs/page.tsx:4:1
-Module not found: Can't resolve 'swagger-ui-dist/swagger-ui.css'
-  2 |
-  3 | import { useEffect } from 'react';
-> 4 | import 'swagger-ui-dist/swagger-ui.css';
-    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  5 |
-  6 | export default function ApiDocs() {
-  7 |     useEffect(() => {
-
-
-
-Import traces:
-  Client Component Browser:
-    ./app/docs/page.tsx [Client Component Browser]
-    ./app/docs/page.tsx [Server Component]
-
-  Client Component SSR:
-    ./app/docs/page.tsx [Client Component SSR]
-    ./app/docs/page.tsx [Server Component]
-
-https://nextjs.org/docs/messages/module-not-found
-
-
-    at <unknown> (./app/canvas/page.tsx:25:1)
-    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
-    at <unknown> (./app/docs/page.tsx:4:1)
-    at <unknown> (https://nextjs.org/docs/messages/module-not-found)
+   Skipping validation of types
+   Linting ...
+   Collecting page data ...
+ΓÜá∩╕Å REDIS_URL not set in production. Caching will be disabled.
+ΓÜá∩╕Å REDIS_URL not set in production. Caching will be disabled.
+   Generating static pages (0/70) ...
+ Γ¿» useSearchParams() should be wrapped in a suspense boundary at page "/auth/signin". Read more: https://nextjs.org/docs/messages/missing-suspense-with-csr-bailout
+    at a (E:\antigraviti google\inside engine\insight-engine-ai-ui\frontend\.next\server\chunks\7111.js:1:8026)
+    at f (E:\antigraviti google\inside engine\insight-engine-ai-ui\frontend\.next\server\chunks\7111.js:1:24622)
+    at b (E:\antigraviti google\inside engine\insight-engine-ai-ui\frontend\.next\server\app\auth\signin\page.js:1:3871)
+    at nO (E:\antigraviti google\inside engine\insight-engine-ai-ui\frontend\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:20:45959)
+    at nI (E:\antigraviti google\inside engine\insight-engine-ai-ui\frontend\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:20:47734)
+    at nL (E:\antigraviti google\inside engine\insight-engine-ai-ui\frontend\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:20:65533)
+    at nN (E:\antigraviti google\inside engine\insight-engine-ai-ui\frontend\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:20:63164)
+    at n$ (E:\antigraviti google\inside engine\insight-engine-ai-ui\frontend\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:20:46311)
+    at nI (E:\antigraviti google\inside engine\insight-engine-ai-ui\frontend\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:20:47780)
+    at nI (E:\antigraviti google\inside engine\insight-engine-ai-ui\frontend\node_modules\next\dist\compiled\next-server\app-page.runtime.prod.js:20:62515)
+Error occurred prerendering page "/auth/signin". Read more: https://nextjs.org/docs/messages/prerender-error
+Export encountered an error on /auth/signin/page: /auth/signin, exiting the build.
+ Γ¿» Static worker exited with code: 1 and signal: null

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Database, Key, Brain, Check, X, Plus as PlusIcon, Trash2, Edit, Save, Loader2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, Database, Key, Brain, Check, X, Plus as PlusIcon, Trash2, Edit, Save, Loader2, RefreshCw, Bell } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,8 @@ import { useConnections, DatabaseConnection } from '@/hooks/use-connections';
 import { RLSManager } from '@/components/security/rls-manager';
 import { DeveloperSettings } from '@/components/settings/developer-settings';
 import { Terminal } from 'lucide-react';
+import { NotificationsSettings } from '@/components/settings/notifications-settings';
+import { PasskeyManager } from '@/components/settings/security/passkey-manager';
 
 const Plus = PlusIcon;
 
@@ -177,6 +179,11 @@ export default function SettingsPage() {
               <Brain className="w-4 h-4" />
               AI Providers
             </TabsTrigger>
+            <TabsTrigger value="notifications" className="gap-2">
+              <Bell className="w-4 h-4" />
+              Notifications
+            </TabsTrigger>
+
             <TabsTrigger value="security" className="gap-2">
               <Key className="w-4 h-4" />
               Security
@@ -410,6 +417,12 @@ export default function SettingsPage() {
             </div>
           </TabsContent>
 
+
+          {/* Notifications Tab */}
+          <TabsContent value="notifications">
+            <NotificationsSettings />
+          </TabsContent>
+
           {/* Security Tab */}
           <TabsContent value="security" className="space-y-6">
             <div className="space-y-4">
@@ -428,6 +441,9 @@ export default function SettingsPage() {
 
               {/* RLS Manager - Connected to Real API */}
               <RLSManager />
+
+              {/* Passkey Manager */}
+              <PasskeyManager />
             </div>
           </TabsContent>
           {/* Developer Tab */}

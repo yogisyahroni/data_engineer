@@ -1,0 +1,172 @@
+
+> my-v0-project@0.1.0 build
+> next build
+
+   Γû▓ Next.js 15.1.4
+   - Environments: .env
+
+   Creating an optimized production build ...
+ Γ£ô (pwa) Compiling for server...
+ Γ£ô (pwa) Compiling for server...
+ Γ£ô (pwa) Compiling for client (static)...
+ Γùï (pwa) Service worker: E:\antigraviti google\inside engine\insight-engine-ai-ui\frontend\public\sw.js
+ Γùï (pwa)   URL: /sw.js
+ Γùï (pwa)   Scope: /
+ Γùï (pwa) Custom runtimeCaching array found, using it instead of the default one.
+ ΓÜá Compiled with warnings
+
+./node_modules/bullmq/dist/esm/classes/child-processor.js
+Critical dependency: the request of a dependency is an expression
+
+Import trace for requested module:
+./node_modules/bullmq/dist/esm/classes/child-processor.js
+./node_modules/bullmq/dist/esm/classes/index.js
+./node_modules/bullmq/dist/esm/index.js
+./lib/queue/queue.ts
+./app/api/pipelines/[id]/run/route.ts
+
+   Skipping validation of types
+   Linting ...
+   Collecting page data ...
+ΓÜá∩╕Å REDIS_URL not set in production. Caching will be disabled.
+ΓÜá∩╕Å REDIS_URL not set in production. Caching will be disabled.
+   Generating static pages (0/70) ...
+   Generating static pages (17/70) 
+   Generating static pages (34/70) 
+   Generating static pages (52/70) 
+ Γ£ô Generating static pages (70/70)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                       Size     First Load JS
+Γöî Γùï /                                             16.1 kB         231 kB
+Γö£ Γùï /_not-found                                   990 B           110 kB
+Γö£ Γùï /alerts                                       5.8 kB          163 kB
+Γö£ ╞Æ /api/activity                                 336 B           109 kB
+Γö£ ╞Æ /api/ai/explain                               336 B           109 kB
+Γö£ ╞Æ /api/ai/generate                              336 B           109 kB
+Γö£ ╞Æ /api/ai/generate-formula                      336 B           109 kB
+Γö£ ╞Æ /api/ai/generate-query                        336 B           109 kB
+Γö£ ╞Æ /api/alerts                                   336 B           109 kB
+Γö£ ╞Æ /api/apps                                     336 B           109 kB
+Γö£ ╞Æ /api/apps/[id]                                336 B           109 kB
+Γö£ ╞Æ /api/apps/[id]/pages                          336 B           109 kB
+Γö£ ╞Æ /api/apps/public/[slug]                       336 B           109 kB
+Γö£ ╞Æ /api/auth/[...nextauth]                       336 B           109 kB
+Γö£ ╞Æ /api/auth/webauthn/authenticate               336 B           109 kB
+Γö£ ╞Æ /api/auth/webauthn/credentials                336 B           109 kB
+Γö£ ╞Æ /api/auth/webauthn/register                   336 B           109 kB
+Γö£ ╞Æ /api/canvas                                   336 B           109 kB
+Γö£ ╞Æ /api/canvas/[id]                              336 B           109 kB
+Γö£ ╞Æ /api/canvas/[id]/widgets                      336 B           109 kB
+Γö£ ╞Æ /api/canvas/[id]/widgets/[widgetId]           336 B           109 kB
+Γö£ ╞Æ /api/collections                              336 B           109 kB
+Γö£ ╞Æ /api/collections/[id]                         336 B           109 kB
+Γö£ ╞Æ /api/comments                                 336 B           109 kB
+Γö£ ╞Æ /api/connections                              336 B           109 kB
+Γö£ ╞Æ /api/connections/[id]                         336 B           109 kB
+Γö£ ╞Æ /api/connections/[id]/schema                  336 B           109 kB
+Γö£ ╞Æ /api/connections/[id]/test                    336 B           109 kB
+Γö£ ╞Æ /api/dashboards                               336 B           109 kB
+Γö£ ╞Æ /api/dashboards/[id]                          336 B           109 kB
+Γö£ ╞Æ /api/dashboards/[id]/cards                    336 B           109 kB
+Γö£ ╞Æ /api/dashboards/[id]/schedule                 336 B           109 kB
+Γö£ ╞Æ /api/dataflows                                336 B           109 kB
+Γö£ ╞Æ /api/dataflows/[id]/run                       336 B           109 kB
+Γö£ ╞Æ /api/docs                                     336 B           109 kB
+Γö£ ╞Æ /api/engine/aggregate                         336 B           109 kB
+Γö£ ╞Æ /api/engine/anomaly                           336 B           109 kB
+Γö£ ╞Æ /api/engine/clustering                        336 B           109 kB
+Γö£ ╞Æ /api/engine/forecast                          336 B           109 kB
+Γö£ ╞Æ /api/feeds/[id]                               336 B           109 kB
+Γö£ ╞Æ /api/ingest                                   336 B           109 kB
+Γö£ ╞Æ /api/ingest/preview                           336 B           109 kB
+Γö£ ╞Æ /api/metrics                                  336 B           109 kB
+Γö£ ╞Æ /api/metrics/[id]                             336 B           109 kB
+Γö£ ╞Æ /api/modeling/definitions                     336 B           109 kB
+Γö£ ╞Æ /api/modeling/definitions/[id]                336 B           109 kB
+Γö£ ╞Æ /api/modeling/definitions/[id]/metrics        336 B           109 kB
+Γö£ ╞Æ /api/modeling/metrics/[id]                    336 B           109 kB
+Γö£ ╞Æ /api/notifications/send                       336 B           109 kB
+Γö£ ╞Æ /api/notifications/subscribe                  336 B           109 kB
+Γö£ ╞Æ /api/pipelines                                336 B           109 kB
+Γö£ ╞Æ /api/pipelines/[id]/run                       336 B           109 kB
+Γö£ ╞Æ /api/pipelines/stats                          336 B           109 kB
+Γö£ ╞Æ /api/public/feed/[token]                      336 B           109 kB
+Γö£ ╞Æ /api/queries/[id]/feeds                       336 B           109 kB
+Γö£ ╞Æ /api/queries/execute                          336 B           109 kB
+Γö£ ╞Æ /api/queries/saved                            336 B           109 kB
+Γö£ ╞Æ /api/queries/saved/[id]                       336 B           109 kB
+Γö£ ╞Æ /api/queries/saved/[id]/versions              336 B           109 kB
+Γö£ ╞Æ /api/scheduler/check-alerts                   336 B           109 kB
+Γö£ ╞Æ /api/scheduler/run-agents                     336 B           109 kB
+Γö£ ╞Æ /api/schema                                   336 B           109 kB
+Γö£ ╞Æ /api/security/policies                        336 B           109 kB
+Γö£ ╞Æ /api/security/policies/[id]                   336 B           109 kB
+Γö£ ╞Æ /api/semantic/dimensions                      336 B           109 kB
+Γö£ ╞Æ /api/semantic/dimensions/[id]                 336 B           109 kB
+Γö£ ╞Æ /api/semantic/metrics                         336 B           109 kB
+Γö£ ╞Æ /api/semantic/metrics/[id]                    336 B           109 kB
+Γö£ ╞Æ /api/semantic/relationships                   336 B           109 kB
+Γö£ ╞Æ /api/semantic/relationships/[id]              336 B           109 kB
+Γö£ ╞Æ /api/settings                                 336 B           109 kB
+Γö£ ╞Æ /api/settings/keys                            336 B           109 kB
+Γö£ ╞Æ /api/settings/keys/[id]                       336 B           109 kB
+Γö£ ╞Æ /api/share                                    336 B           109 kB
+Γö£ ╞Æ /api/share/[token]                            336 B           109 kB
+Γö£ ╞Æ /api/share/generate                           336 B           109 kB
+Γö£ ╞Æ /api/upload                                   336 B           109 kB
+Γö£ ╞Æ /api/workspaces                               336 B           109 kB
+Γö£ ╞Æ /api/workspaces/[id]                          336 B           109 kB
+Γö£ ╞Æ /api/workspaces/[id]/lineage                  336 B           109 kB
+Γö£ ╞Æ /api/workspaces/[id]/members                  336 B           109 kB
+Γö£ ╞Æ /api/workspaces/[id]/members/[memberId]       336 B           109 kB
+Γö£ ╞Æ /api/workspaces/[id]/theme                    336 B           109 kB
+Γö£ Γùï /apps                                         5.32 kB         140 kB
+Γö£ ╞Æ /apps/builder/[id]                            11.4 kB         164 kB
+Γö£ ╞Æ /apps/public/[slug]                           2.49 kB         403 kB
+Γö£ Γùï /ask                                          9.54 kB         188 kB
+Γö£ Γùï /auth/signin                                  13.4 kB         139 kB
+Γö£ Γùï /canvas                                       4.94 kB         140 kB
+Γö£ ╞Æ /canvas/[id]                                  25.1 kB         179 kB
+Γö£ Γùï /catalog                                      5.6 kB          166 kB
+Γö£ ╞Æ /catalog/metric/[id]                          2.7 kB          159 kB
+Γö£ Γùï /collections                                  7.08 kB         162 kB
+Γö£ Γùï /connections                                  12.4 kB         202 kB
+Γö£ Γùï /dashboard                                    5.08 kB         126 kB
+Γö£ Γùï /dashboards                                   9.92 kB         436 kB
+Γö£ ╞Æ /dashboards/[id]                              8.09 kB         409 kB
+Γö£ Γùï /dataflows                                    4.27 kB         143 kB
+Γö£ ╞Æ /dataflows/[id]                               2.76 kB         125 kB
+Γö£ Γùï /docs                                         3.4 kB          112 kB
+Γö£ Γùï /explorer                                     16.6 kB         223 kB
+Γö£ Γùï /ingest                                       9.28 kB         166 kB
+Γö£ Γùï /manifest.webmanifest                         0 B                0 B
+Γö£ Γùï /metadata                                     4.38 kB         139 kB
+Γö£ Γùï /modeling                                     8.02 kB         175 kB
+Γö£ ╞Æ /modeling/[id]                                9.07 kB         176 kB
+Γö£ Γùï /onboarding                                   10.8 kB         165 kB
+Γö£ Γùï /query-builder                                27.6 kB         181 kB
+Γö£ Γùï /saved-queries                                11.8 kB         174 kB
+Γö£ Γùï /settings                                     12.4 kB         176 kB
+Γö£ ╞Æ /share/[token]                                3.25 kB         121 kB
+Γö£ Γùï /stories                                      6.85 kB         159 kB
+Γö£ ╞Æ /stories/[id]                                 4.14 kB         122 kB
+Γö£ ╞Æ /stories/[id]/edit                            4.32 kB         122 kB
+Γö£ Γùï /templates                                    4.85 kB         126 kB
+Γö£ ╞Æ /workspace/[workspaceId]/pipelines            3.99 kB         133 kB
+Γö£ ╞Æ /workspace/[workspaceId]/pipelines/[id]       3.11 kB         148 kB
+Γö£ ╞Æ /workspace/[workspaceId]/pipelines/dashboard  5.61 kB         141 kB
+Γö£ ╞Æ /workspace/[workspaceId]/pipelines/lineage    1.92 kB         119 kB
+Γö£ ╞Æ /workspace/[workspaceId]/pipelines/new        6.54 kB         180 kB
+Γö£ ╞Æ /workspace/[workspaceId]/settings/theme       9.7 kB          132 kB
+Γöö Γùï /workspace/settings                           6.9 kB          156 kB
++ First Load JS shared by all                     109 kB
+  Γö£ chunks/4bd1b696-4e084d7fe70b380f.js           53 kB
+  Γö£ chunks/7455-06211cc660c75f9d.js               53 kB
+  Γöö other shared chunks (total)                   2.84 kB
+
+
+Γùï  (Static)   prerendered as static content
+╞Æ  (Dynamic)  server-rendered on demand
+
