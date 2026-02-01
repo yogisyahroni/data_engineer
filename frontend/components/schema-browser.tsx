@@ -17,34 +17,10 @@ interface SchemaBrowserProps {
 }
 
 // Fallback mock schema when no real schema is available
-const MOCK_SCHEMA: SchemaInfo = {
-  tables: [
-    {
-      name: 'customers',
-      schema: 'public',
-      rowCount: 1250,
-      columns: [
-        { name: 'id', type: 'uuid', nullable: false, isPrimary: true, defaultValue: 'gen_random_uuid()', description: 'Primary Key' },
-        { name: 'name', type: 'varchar', nullable: false, isPrimary: false, defaultValue: null, description: 'Customer full name' },
-        { name: 'email', type: 'varchar', nullable: false, isPrimary: false, defaultValue: null, description: 'Email address' },
-      ],
-      foreignKeys: []
-    },
-    {
-      name: 'orders',
-      schema: 'public',
-      rowCount: 15420,
-      columns: [
-        { name: 'id', type: 'uuid', nullable: false, isPrimary: true, defaultValue: 'gen_random_uuid()', description: 'Order ID' },
-        { name: 'customer_id', type: 'uuid', nullable: false, isPrimary: false, defaultValue: null, description: 'Customer reference' },
-        { name: 'amount', type: 'decimal', nullable: false, isPrimary: false, defaultValue: null, description: 'Order total amount' },
-      ],
-      foreignKeys: [
-        { column: 'customer_id', referencedTable: 'customers', referencedSchema: 'public', referencedColumn: 'id' }
-      ]
-    }
-  ],
-  lastSyncedAt: new Date('2026-01-27T00:00:00Z'),
+// Fallback when no schema
+const EMPTY_SCHEMA: SchemaInfo = {
+  tables: [],
+  lastSyncedAt: new Date(),
 };
 
 export function SchemaBrowser({
@@ -61,8 +37,8 @@ export function SchemaBrowser({
     setMounted(true);
   }, []);
 
-  // Use provided schema or fallback to mock
-  const schemaData = schema || MOCK_SCHEMA;
+  // Use provided schema or empty
+  const schemaData = schema || EMPTY_SCHEMA;
 
   // Filter tables based on search
   const filteredTables = useMemo(() => {

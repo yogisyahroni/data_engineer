@@ -63,7 +63,7 @@ export function useQueryExecution() {
         hasAiPrompt: !!options.aiPrompt,
       });
 
-      const response = await fetch('/api/queries/execute', {
+      const response = await fetch('/api/go/queries/execute', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

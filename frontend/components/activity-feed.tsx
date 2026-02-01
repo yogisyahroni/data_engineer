@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
-import { User, FileText, Share2, Edit, Save, Trash2 } from 'lucide-react';
+import { User, FileText, Share2, Edit, Save, Trash2, Activity } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 interface ActivityItem {
   id: string;
-  type: 'query_executed' | 'query_saved' | 'query_shared' | 'query_edited' | 'dashboard_created';
+  type: string;
   user: {
     name: string;
     email: string;
@@ -31,36 +31,38 @@ export function ActivityFeed({ limit = 10, autoRefresh = true }: ActivityFeedPro
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate fetching activities
-    const mockActivities: ActivityItem[] = [
-      {
-        id: '1',
-        type: 'query_executed',
-        user: { name: 'You', email: 'you@example.com' },
-        resource: { name: 'Top Customers by Sales', type: 'query' },
-        timestamp: new Date(Date.now() - 5 * 60 * 1000),
-      },
-      {
-        id: '2',
-        type: 'query_shared',
-        user: { name: 'John Doe', email: 'john@example.com' },
-        resource: { name: 'Monthly Revenue Trend', type: 'query' },
-        timestamp: new Date(Date.now() - 15 * 60 * 1000),
-        metadata: { sharedWith: 'jane@example.com', permission: 'view' },
-      },
-      {
-        id: '3',
-        type: 'dashboard_created',
-        user: { name: 'Jane Smith', email: 'jane@example.com' },
-        resource: { name: 'Sales Overview', type: 'dashboard' },
-        timestamp: new Date(Date.now() - 1 * 60 * 60 * 1000),
-      },
-    ];
+    const fetchActivities = async () => {
+      try {
+        const res = await fetch('/api/activity');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            setActivities(data.activities.map((a: any) => ({
+              id: a.id,
+              type: a.type,
+              user: {
+                name: a.user?.name || 'Unknown',
+                email: a.user?.email || '',
+                avatar: a.user?.image,
+              },
+              resource: {
+                name: a.resourceName || 'Unknown Resource',
+                type: a.resourceType || 'unknown',
+              },
+              timestamp: new Date(a.createdAt),
+              metadata: a.metadata ? (typeof a.metadata === 'string' ? JSON.parse(a.metadata) : a.metadata) : {},
+            })));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch activities:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    setActivities(mockActivities.slice(0, limit));
-    setIsLoading(false);
-    console.log('[v0] Activity feed loaded');
-  }, [limit]);
+    fetchActivities();
+  }, [limit]); // Re-fetch only on limit change, not autoRefresh prop itself unless we implement polling
 
   const getActivityIcon = (type: string) => {
     switch (type) {
@@ -73,7 +75,7 @@ export function ActivityFeed({ limit = 10, autoRefresh = true }: ActivityFeedPro
       case 'query_saved':
         return <Save className="w-4 h-4" />;
       case 'dashboard_created':
-        return <Share2 className="w-4 h-4" />;
+        return <Activity className="w-4 h-4" />;
       default:
         return <FileText className="w-4 h-4" />;
     }
@@ -92,7 +94,7 @@ export function ActivityFeed({ limit = 10, autoRefresh = true }: ActivityFeedPro
       case 'dashboard_created':
         return `created dashboard`;
       default:
-        return `activity`;
+        return `performed action`;
     }
   };
 

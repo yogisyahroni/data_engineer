@@ -21,20 +21,37 @@ const connection = redis ? {
 
 let queueInstance: Queue | null = null;
 
+// Lazy load queue to prevent build-time connections
+// Lazy load queue to prevent build-time connections
 export const getPipelineQueue = () => {
+    if (typeof window !== 'undefined') return null; // Don't run on client
+    if (process.env.NEXT_PHASE === 'phase-production-build') return null; // Try to skip during build
+
     if (!queueInstance) {
-        queueInstance = new Queue('etl-jobs', {
-            connection: redis || { host: 'localhost', port: 6379 },
-            defaultJobOptions: {
-                attempts: 3,
-                backoff: {
-                    type: 'exponential',
-                    delay: 1000,
+        try {
+            // Check if we are in a compatible environment or just risky-create
+            queueInstance = new Queue('etl-jobs', {
+                connection: redis || { host: 'localhost', port: 6379 },
+                defaultJobOptions: {
+                    attempts: 3,
+                    backoff: {
+                        type: 'exponential',
+                        delay: 1000,
+                    },
+                    removeOnComplete: 100,
+                    removeOnFail: 500,
                 },
-                removeOnComplete: 100,
-                removeOnFail: 500,
-            },
-        });
+            });
+
+            // Add error handler to prevent unhandled rejections from the queue instance itself
+            queueInstance.on('error', (err) => {
+                console.warn('BullMQ Queue Error (likely Redis version mismatch):', err.message);
+            });
+
+        } catch (error) {
+            console.warn('Failed to initialize BullMQ (Queue disabled):', error);
+            return null;
+        }
     }
     return queueInstance;
 };

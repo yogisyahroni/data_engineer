@@ -20,13 +20,11 @@ import { Save } from 'lucide-react';
 import { SaveQueryDialog } from '@/components/saved-queries/save-query-dialog';
 
 // Using simple in-memory history for MVP, can be moved to local storage or DB later
-const MOCK_HISTORY: HistoryItem[] = [];
-
 export default function AskPage() {
     const { open: openSidebar } = useSidebar();
     const [activeConnectionId, setActiveConnectionId] = useState<string>('');
 
-    const [history, setHistory] = useState<HistoryItem[]>(MOCK_HISTORY);
+    const [history, setHistory] = useState<HistoryItem[]>([]);
     const [currentQuery, setCurrentQuery] = useState<{
         id: string;
         prompt: string;

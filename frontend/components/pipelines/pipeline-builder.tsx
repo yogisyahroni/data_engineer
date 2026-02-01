@@ -26,6 +26,7 @@ import {
 import { toast } from "sonner";
 import { TransformationBuilder } from "./transformation-builder";
 import { QualityBuilder } from "./quality-builder";
+import { usePipelines } from "@/hooks/use-pipelines";
 
 const pipelineFormSchema = z.object({
     name: z.string().min(2, "Name is required"),
@@ -51,6 +52,7 @@ interface PipelineBuilderProps {
 export function PipelineBuilder({ workspaceId }: PipelineBuilderProps) {
     const router = useRouter();
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const { createPipeline } = usePipelines({ workspaceId });
 
     const form = useForm<PipelineFormValues>({
         resolver: zodResolver(pipelineFormSchema),
@@ -82,21 +84,16 @@ export function PipelineBuilder({ workspaceId }: PipelineBuilderProps) {
                     : { endpoint: data.sourceConfig.endpoint }
             };
 
-            const response = await fetch("/api/pipelines", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
-            });
+            const result = await createPipeline(payload);
 
-            if (!response.ok) {
-                const err = await response.text();
-                throw new Error(err);
+            if (!result.success) {
+                throw new Error(result.error || "Failed to create pipeline");
             }
 
             toast.success("Pipeline created successfully");
             router.push(`/workspace/${workspaceId}/pipelines`);
         } catch (error: any) {
-            toast.error(error.message);
+            toast.error(error.message || "Failed to create pipeline");
         } finally {
             setIsSubmitting(false);
         }

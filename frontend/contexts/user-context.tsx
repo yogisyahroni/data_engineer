@@ -14,90 +14,42 @@ interface UserContextType {
 
 const UserContext = createContext<UserContextType | undefined>(undefined);
 
-// Mock user for demo
-const DEMO_USER: User = {
-  id: 'user_demo_123',
-  email: 'demo@insightengine.ai',
-  name: 'Demo User',
-  avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=demo',
-  createdAt: new Date(),
-  updatedAt: new Date(),
-};
-
 export function UserProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // Dev Auth: Auto-login as user_123
   useEffect(() => {
-    // Simulate loading user from localStorage or API
-    const timer = setTimeout(() => {
-      const savedUser = localStorage.getItem('insightengine_user');
-      if (savedUser) {
-        try {
-          setUser(JSON.parse(savedUser));
-        } catch {
-          // Invalid JSON, skip
+    const fetchDevUser = async () => {
+      try {
+        const res = await fetch('/api/user/me');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.user) {
+            setUser(data.user);
+            console.log('[UserContext] Dev Auth successful:', data.user.email);
+          }
         }
-      } else {
-        // Set demo user for demo purposes
-        setUser(DEMO_USER);
-        localStorage.setItem('insightengine_user', JSON.stringify(DEMO_USER));
+      } catch (err) {
+        console.error('[UserContext] Dev Auth failed:', err);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
-      console.log('[v0] User context initialized');
-    }, 500);
+    };
 
-    return () => clearTimeout(timer);
+    fetchDevUser();
   }, []);
 
   const login = async (email: string, password: string) => {
-    setIsLoading(true);
-    try {
-      // TODO: Implement actual login API call
-      const newUser: User = {
-        id: `user_${Date.now()}`,
-        email,
-        name: email.split('@')[0],
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      setUser(newUser);
-      localStorage.setItem('insightengine_user', JSON.stringify(newUser));
-      console.log('[v0] User logged in:', email);
-    } finally {
-      setIsLoading(false);
-    }
+    console.log('[DevAuth] Login UI disabled. Auto-logged in as Developer.');
   };
 
   const logout = async () => {
-    setIsLoading(true);
-    try {
-      // TODO: Implement actual logout API call
-      setUser(null);
-      localStorage.removeItem('insightengine_user');
-      console.log('[v0] User logged out');
-    } finally {
-      setIsLoading(false);
-    }
+    console.log('[DevAuth] Logout disabled for Dev Mode.');
   };
 
   const signup = async (email: string, name: string, password: string) => {
-    setIsLoading(true);
-    try {
-      // TODO: Implement actual signup API call
-      const newUser: User = {
-        id: `user_${Date.now()}`,
-        email,
-        name,
-        createdAt: new Date(),
-        updatedAt: new Date(),
-      };
-      setUser(newUser);
-      localStorage.setItem('insightengine_user', JSON.stringify(newUser));
-      console.log('[v0] User signed up:', email);
-    } finally {
-      setIsLoading(false);
-    }
+    console.log('[DevAuth] Signup disabled. Auto-logged in as Developer.');
   };
 
   return (

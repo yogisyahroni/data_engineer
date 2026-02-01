@@ -23,7 +23,7 @@ export function useSavedQueries(options: UseSavedQueriesOptions = {}) {
       if (options.collectionId) params.append('collectionId', options.collectionId);
       if (options.userId) params.append('userId', options.userId);
 
-      const response = await fetch(`/api/queries/saved?${params.toString()}`);
+      const response = await fetch(`/api/go/queries?${params.toString()}`);
 
       if (!response.ok) {
         throw new Error(`Failed to fetch queries: ${response.status}`);
@@ -49,7 +49,7 @@ export function useSavedQueries(options: UseSavedQueriesOptions = {}) {
   const saveQuery = useCallback(
     async (query: Omit<SavedQuery, 'id' | 'createdAt' | 'updatedAt' | 'views' | 'pinned'>) => {
       try {
-        const response = await fetch('/api/queries/saved', {
+        const response = await fetch('/api/go/queries', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -81,7 +81,7 @@ export function useSavedQueries(options: UseSavedQueriesOptions = {}) {
 
   const deleteQuery = useCallback(async (queryId: string) => {
     try {
-      const response = await fetch(`/api/queries/saved/${queryId}`, {
+      const response = await fetch(`/api/go/queries/${queryId}`, {
         method: 'DELETE',
       });
 
@@ -112,7 +112,7 @@ export function useSavedQueries(options: UseSavedQueriesOptions = {}) {
       const query = queries.find((q) => q.id === queryId);
       if (!query) return;
 
-      const response = await fetch(`/api/queries/saved/${queryId}`, {
+      const response = await fetch(`/api/go/queries/${queryId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -138,7 +138,7 @@ export function useSavedQueries(options: UseSavedQueriesOptions = {}) {
 
   const updateQuery = useCallback(async (id: string, updates: Partial<SavedQuery>) => {
     try {
-      const response = await fetch(`/api/queries/saved/${id}`, {
+      const response = await fetch(`/api/go/queries/${id}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

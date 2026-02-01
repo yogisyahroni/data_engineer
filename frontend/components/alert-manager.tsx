@@ -1,45 +1,46 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Bell, Play, CheckCircle, AlertTriangle } from 'lucide-react';
 import { AlertRule } from '@/lib/services/alert-service';
 
-// Mock data mirroring the backend service for now
-const MOCK_ALERTS: Partial<AlertRule>[] = [
-    {
-        id: 1,
-        name: 'Low Revenue Warning',
-        metricColumn: 'amount',
-        metricType: 'sum',
-        operator: '<',
-        threshold: 10000,
-        emailTo: 'boss@company.com',
-        lastTriggeredAt: new Date(),
-    },
-    {
-        id: 2,
-        name: 'High Traffic Alert',
-        metricColumn: 'visits',
-        metricType: 'count',
-        operator: '>',
-        threshold: 5000,
-        emailTo: 'devops@company.com'
-    }
-];
-
 export function AlertManager() {
+    const [alerts, setAlerts] = useState<Partial<AlertRule>[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
     const [isChecking, setIsChecking] = useState(false);
     const [lastResult, setLastResult] = useState<any>(null);
+
+    // Fetch alerts on mount
+    useEffect(() => {
+        const fetchAlerts = async () => {
+            try {
+                // Use Go Backend Proxy
+                const res = await fetch('/api/go/alerts');
+                if (res.ok) {
+                    const data = await res.json();
+                    // Handle both Go (status: success) and Node (success: true) formats
+                    if (data.status === 'success' || data.success) {
+                        setAlerts(data.data);
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to fetch alerts:', err);
+            } finally {
+                setIsLoading(false);
+            }
+        };
+        fetchAlerts();
+    }, []);
 
     const handleManualCheck = async () => {
         setIsChecking(true);
         try {
             const res = await fetch('/api/scheduler/check-alerts', {
                 headers: {
-                    'x-cron-secret': 'schedule_secret_123' // Hardcoded for demo UI
+                    'x-cron-secret': 'schedule_secret_123' // Hardcoded for dev
                 }
             });
             const data = await res.json();
@@ -70,25 +71,31 @@ export function AlertManager() {
             </CardHeader>
             <CardContent>
                 <div className="space-y-4">
-                    {MOCK_ALERTS.map((alert) => (
-                        <div key={alert.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">
-                            <div>
-                                <div className="font-medium flex items-center gap-2">
-                                    {alert.name}
-                                    <span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary">Active</span>
+                    {isLoading ? (
+                        <div className="text-center py-4 text-muted-foreground">Loading rules...</div>
+                    ) : alerts.length === 0 ? (
+                        <div className="text-center py-4 text-muted-foreground">No alert rules defined</div>
+                    ) : (
+                        alerts.map((alert) => (
+                            <div key={alert.id} className="flex items-center justify-between p-3 border rounded-lg bg-muted/20">
+                                <div>
+                                    <div className="font-medium flex items-center gap-2">
+                                        {alert.name}
+                                        <span className="text-xs px-2 py-0.5 rounded bg-primary/10 text-primary">Active</span>
+                                    </div>
+                                    <div className="text-sm text-muted-foreground mt-1">
+                                        If {alert.metricType}({alert.metricColumn}) {alert.operator} {alert.threshold} → Email {alert.emailTo}
+                                    </div>
                                 </div>
-                                <div className="text-sm text-muted-foreground mt-1">
-                                    If {alert.metricType}({alert.metricColumn}) {alert.operator} {alert.threshold} → Email {alert.emailTo}
+                                <div className="text-right">
+                                    <div className="text-xs text-muted-foreground">Last Triggered</div>
+                                    <div className="text-sm font-mono">
+                                        {alert.lastTriggeredAt ? new Date(alert.lastTriggeredAt).toLocaleDateString() : 'Never'}
+                                    </div>
                                 </div>
                             </div>
-                            <div className="text-right">
-                                <div className="text-xs text-muted-foreground">Last Triggered</div>
-                                <div className="text-sm font-mono">
-                                    {alert.lastTriggeredAt ? alert.lastTriggeredAt.toLocaleDateString() : 'Never'}
-                                </div>
-                            </div>
-                        </div>
-                    ))}
+                        ))
+                    )}
                 </div>
 
                 {lastResult && (

@@ -63,6 +63,14 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  async rewrites() {
+    return [
+      {
+        source: '/api/go/:path*',
+        destination: 'http://localhost:8080/api/:path*', // Proxy to Go Backend
+      },
+    ]
+  },
 }
 
 export default withPWA(nextConfig);

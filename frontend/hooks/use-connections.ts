@@ -61,7 +61,7 @@ export function useConnections(options: UseConnectionsOptions = {}) {
             const params = new URLSearchParams();
             if (options.userId) params.append('userId', options.userId);
 
-            const response = await fetch(`/api/connections?${params.toString()}`);
+            const response = await fetch(`/api/go/connections?${params.toString()}`);
 
             if (!response.ok) {
                 if (response.status === 401) throw new Error('Unauthorized');
@@ -91,7 +91,7 @@ export function useConnections(options: UseConnectionsOptions = {}) {
     // Create new connection
     const createConnection = useCallback(async (data: Partial<DatabaseConnection>) => {
         try {
-            const response = await fetch('/api/connections', {
+            const response = await fetch('/api/go/connections', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data),
@@ -117,7 +117,7 @@ export function useConnections(options: UseConnectionsOptions = {}) {
     // Update connection
     const updateConnection = useCallback(async (id: string, data: Partial<DatabaseConnection>) => {
         try {
-            const response = await fetch(`/api/connections/${id}`, {
+            const response = await fetch(`/api/go/connections/${id}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(data),
@@ -145,7 +145,7 @@ export function useConnections(options: UseConnectionsOptions = {}) {
     // Delete connection
     const deleteConnection = useCallback(async (id: string) => {
         try {
-            const response = await fetch(`/api/connections/${id}`, {
+            const response = await fetch(`/api/go/connections/${id}`, {
                 method: 'DELETE',
             });
 
@@ -174,7 +174,7 @@ export function useConnections(options: UseConnectionsOptions = {}) {
     const testConnection = useCallback(async (id: string): Promise<TestConnectionResult> => {
         setIsTestingConnection(true);
         try {
-            const response = await fetch(`/api/connections/${id}/test`, {
+            const response = await fetch(`/api/go/connections/${id}/test`, {
                 method: 'POST',
             });
 
@@ -189,18 +189,15 @@ export function useConnections(options: UseConnectionsOptions = {}) {
     }, []);
 
     // Fetch schema for a connection
-    const fetchSchema = useCallback(async (id: string, useMock: boolean = false) => {
+    const fetchSchema = useCallback(async (id: string) => {
         setIsFetchingSchema(true);
         try {
-            const params = new URLSearchParams();
-            if (useMock) params.append('mock', 'true');
-
-            const response = await fetch(`/api/connections/${id}/schema?${params.toString()}`);
+            const response = await fetch(`/api/go/connections/${id}/schema`);
             const result = await response.json();
 
             if (result.success) {
                 setSchema(result.data);
-                return { success: true, data: result.data, isMock: result.isMock };
+                return { success: true, data: result.data };
             }
             return { success: false, error: result.error || 'Unknown error' };
         } catch (err) {

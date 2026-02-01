@@ -28,43 +28,55 @@ interface DatabaseContextType {
 
 const DatabaseContext = createContext<DatabaseContextType | undefined>(undefined);
 
-const DEFAULT_DATABASES: Database[] = [
-  {
-    id: 'sample_pg',
-    name: 'Sample Database',
-    type: 'postgresql',
-    host: 'localhost',
-    port: 5432,
-    database: 'sample_db',
-    username: 'postgres',
-    status: 'connected',
-    lastSync: new Date().toISOString(),
-    createdAt: new Date().toISOString(),
-  },
-];
-
 export function DatabaseProvider({ children }: { children: React.ReactNode }) {
-  const [databases, setDatabases] = useState<Database[]>(DEFAULT_DATABASES);
-  const [selectedDatabase, setSelectedDatabase] = useState<Database | null>(DEFAULT_DATABASES[0]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [databases, setDatabases] = useState<Database[]>([]);
+  const [selectedDatabase, setSelectedDatabase] = useState<Database | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load from localStorage on mount
+  // Fetch databases from API
   useEffect(() => {
-    const saved = localStorage.getItem('insight_databases');
-    if (saved) {
+    const fetchDatabases = async () => {
+      setIsLoading(true);
       try {
-        const parsed = JSON.parse(saved);
-        setDatabases(parsed);
-        if (parsed.length > 0) {
-          setSelectedDatabase(parsed[0]);
+        const response = await fetch('/api/connections');
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && Array.isArray(result.data)) {
+            // Map API connections to Database interface if needed
+            // Assuming API returns compatible structure or we adapt easily
+            const mappedDbs: Database[] = result.data.map((conn: any) => ({
+              id: conn.id,
+              name: conn.name,
+              type: conn.type,
+              host: conn.host || 'localhost', // transform if needed
+              port: conn.port || 5432,
+              database: conn.database || '',
+              username: conn.username || '',
+              status: conn.isActive ? 'connected' : 'disconnected',
+              lastSync: conn.updatedAt || new Date().toISOString(),
+              createdAt: conn.createdAt || new Date().toISOString(),
+            }));
+            setDatabases(mappedDbs);
+            // Select first one if none selected and dbs exist
+            if (mappedDbs.length > 0 && !selectedDatabase) {
+              setSelectedDatabase(mappedDbs[0]);
+            }
+          }
         }
-      } catch (err) {
-        console.error('Failed to load databases from localStorage', err);
+      } catch (error) {
+        console.error('Failed to fetch databases:', error);
+      } finally {
+        setIsLoading(false);
       }
-    }
-  }, []);
+    };
 
-  // Save to localStorage whenever databases change
+    fetchDatabases();
+    // Re-fetch every 30s or on mount
+    const interval = setInterval(fetchDatabases, 30000);
+    return () => clearInterval(interval);
+  }, []); // Connection list shouldn't depend on too many things to avoid loops.
+
+  // Save to localStorage whenever databases change (Persist selection/cache if needed, though we rely on API now)
   useEffect(() => {
     localStorage.setItem('insight_databases', JSON.stringify(databases));
   }, [databases]);

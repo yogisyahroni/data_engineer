@@ -139,7 +139,7 @@ export function HomePageContent() {
     // Fetch schema when connection changes
     useEffect(() => {
         if (activeConnection?.id) {
-            fetchSchema(activeConnection.id, true); // Use mock for now
+            fetchSchema(activeConnection.id, false);
         }
     }, [activeConnection?.id, fetchSchema]);
 

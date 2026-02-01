@@ -285,10 +285,10 @@ export default function CollectionsPage() {
                         </>
                     )}
                 </div>
-            </main >
+            </main>
 
             {/* Create Collection Dialog */}
-            < Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen} >
+            <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>
@@ -311,7 +311,7 @@ export default function CollectionsPage() {
                         <Button onClick={handleCreate} disabled={!newCollectionName}>Create</Button>
                     </DialogFooter>
                 </DialogContent>
-            </Dialog >
+            </Dialog>
 
 
             <MoveToCollectionDialog
@@ -322,6 +322,6 @@ export default function CollectionsPage() {
                 onMove={handleMoveItem}
                 title={moveItem ? `Move ${moveItem.type === 'dashboard' ? 'Dashboard' : 'Query'}` : 'Move Item'}
             />
-        </div >
+        </div>
     );
 }

@@ -1,141 +1,227 @@
 'use client';
 
-import { useState, useCallback, useEffect } from 'react';
-import { type Collection } from '@/lib/types';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { collectionApi } from '@/lib/api/collections';
+import { toast } from 'sonner';
+import type { CreateCollectionRequest, Collection } from '@/lib/types/batch3';
 
-interface UseCollectionsOptions {
-  userId?: string;
-  autoFetch?: boolean;
-}
+export function useCollections() {
+  const queryClient = useQueryClient();
 
-export function useCollections(options: UseCollectionsOptions = {}) {
-  const [collections, setCollections] = useState<Collection[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  // Query: List collections
+  const { data: collections = [], isLoading, error } = useQuery({
+    queryKey: ['collections'],
+    queryFn: collectionApi.list,
+  });
 
-  const fetchCollections = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
+  // Mutation: Create collection (with optimistic update)
+  const createMutation = useMutation({
+    mutationFn: collectionApi.create,
+    onMutate: async (newCollection) => {
+      await queryClient.cancelQueries({ queryKey: ['collections'] });
+      const previousCollections = queryClient.getQueryData(['collections']);
 
-    try {
-      const params = new URLSearchParams();
-      if (options.userId) params.append('userId', options.userId);
+      const tempId = `temp-${Date.now()}`;
+      const optimisticCollection: any = {
+        id: tempId,
+        ...newCollection,
+        items: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        _optimistic: true,
+        _status: 'pending',
+      };
 
-      const response = await fetch(`/api/collections?${params.toString()}`);
+      queryClient.setQueryData(['collections'], (old: any) => [optimisticCollection, ...(old || [])]);
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch collections: ${response.status}`);
-      }
-
-      const data = (await response.json()) as { success: boolean; data: Collection[] };
-
-      if (data.success) {
-        setCollections(data.data);
-        console.log('[v0] Loaded collections:', data.data.length);
-      } else {
-        throw new Error('Failed to fetch collections');
-      }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-      setError(errorMessage);
-      console.error('[v0] Error fetching collections:', errorMessage);
-    } finally {
-      setIsLoading(false);
-    }
-  }, [options.userId]);
-
-  const createCollection = useCallback(
-    async (collection: Omit<Collection, 'id' | 'userId' | 'createdAt' | 'updatedAt'>) => {
-      try {
-        const response = await fetch('/api/collections', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(collection),
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to create collection: ${response.status}`);
-        }
-
-        const data = (await response.json()) as { success: boolean; data: Collection };
-
-        if (data.success) {
-          setCollections((prev) => [...prev, data.data]);
-          console.log('[v0] Collection created:', data.data.id);
-          return { success: true, data: data.data };
-        } else {
-          throw new Error('Failed to create collection');
-        }
-      } catch (err) {
-        const errorMessage = err instanceof Error ? err.message : 'Unknown error';
-        console.error('[v0] Error creating collection:', errorMessage);
-        return { success: false, error: errorMessage };
-      }
+      return { previousCollections, tempId };
     },
-    []
-  );
-
-  const updateCollection = useCallback(async (collectionId: string, updates: Partial<Collection>) => {
-    try {
-      const response = await fetch(`/api/collections/${collectionId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updates)
-      });
-
-      if (!response.ok) throw new Error('Failed to update collection');
-
-      const data = await response.json();
-      if (data.success) {
-        setCollections((prev) =>
-          prev.map((c) =>
-            c.id === collectionId ? { ...c, ...data.data } : c
-          )
-        );
+    onSuccess: (realCollection, variables, context) => {
+      queryClient.setQueryData(['collections'], (old: any) =>
+        (old || []).map((item: any) =>
+          item.id === context?.tempId ? { ...realCollection, _optimistic: false } : item
+        )
+      );
+      toast.success('Collection created successfully');
+    },
+    onError: (error: Error, variables, context) => {
+      if (context?.previousCollections) {
+        queryClient.setQueryData(['collections'], context.previousCollections);
       }
-    } catch (error) {
-      console.error('Failed to update collection', error);
-    }
-  }, []);
+      toast.error(`Failed to create collection: ${error.message}`);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['collections'] });
+    },
+  });
 
-  const deleteCollection = useCallback(async (collectionId: string) => {
-    try {
-      await fetch(`/api/collections/${collectionId}`, { method: 'DELETE' });
-      setCollections((prev) => prev.filter((c) => c.id !== collectionId));
-    } catch (error) {
-      console.error('Failed to delete collection', error);
-    }
-  }, []);
+  // Mutation: Update collection (with optimistic update)
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Collection> }) =>
+      collectionApi.update(id, data),
+    onMutate: async ({ id, data }) => {
+      await queryClient.cancelQueries({ queryKey: ['collections'] });
+      const previousCollections = queryClient.getQueryData(['collections']);
 
-  useEffect(() => {
-    if (options.autoFetch !== false) {
-      fetchCollections();
-    }
-  }, [fetchCollections, options.autoFetch]);
+      queryClient.setQueryData(['collections'], (old: any) =>
+        (old || []).map((item: any) =>
+          item.id === id ? { ...item, ...data, _optimistic: true, _status: 'pending' } : item
+        )
+      );
+
+      return { previousCollections };
+    },
+    onSuccess: (updatedCollection, { id }) => {
+      queryClient.setQueryData(['collections'], (old: any) =>
+        (old || []).map((item: any) =>
+          item.id === id ? { ...updatedCollection, _optimistic: false } : item
+        )
+      );
+      toast.success('Collection updated successfully');
+    },
+    onError: (error: Error, variables, context) => {
+      if (context?.previousCollections) {
+        queryClient.setQueryData(['collections'], context.previousCollections);
+      }
+      toast.error(`Failed to update collection: ${error.message}`);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['collections'] });
+    },
+  });
+
+  // Mutation: Delete collection (with optimistic update)
+  const deleteMutation = useMutation({
+    mutationFn: collectionApi.delete,
+    onMutate: async (id: string) => {
+      await queryClient.cancelQueries({ queryKey: ['collections'] });
+      const previousCollections = queryClient.getQueryData(['collections']);
+
+      queryClient.setQueryData(['collections'], (old: any) =>
+        (old || []).filter((item: any) => item.id !== id)
+      );
+
+      return { previousCollections };
+    },
+    onSuccess: () => {
+      toast.success('Collection deleted successfully');
+    },
+    onError: (error: Error, variables, context) => {
+      if (context?.previousCollections) {
+        queryClient.setQueryData(['collections'], context.previousCollections);
+      }
+      toast.error(`Failed to delete collection: ${error.message}`);
+    },
+    onSettled: () => {
+      queryClient.invalidateQueries({ queryKey: ['collections'] });
+    },
+  });
+
+  // Mutation: Add item to collection
+  const addItemMutation = useMutation({
+    mutationFn: ({ collectionId, itemType, itemId }: { collectionId: string; itemType: 'pipeline' | 'dataflow'; itemId: string }) =>
+      collectionApi.addItem(collectionId, itemType, itemId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['collections'] });
+      toast.success('Item added to collection');
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to add item: ${error.message}`);
+    },
+  });
+
+  // Mutation: Remove item from collection
+  const removeItemMutation = useMutation({
+    mutationFn: ({ collectionId, itemId }: { collectionId: string; itemId: string }) =>
+      collectionApi.removeItem(collectionId, itemId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['collections'] });
+      toast.success('Item removed from collection');
+    },
+    onError: (error: Error) => {
+      toast.error(`Failed to remove item: ${error.message}`);
+    },
+  });
 
   return {
+    // Data
     collections,
     isLoading,
-    error,
-    fetchCollections,
-    createCollection,
-    updateCollection,
-    deleteCollection,
-    // Build a tree structure for nested collections
+    error: error?.message || null,
+
+    // Mutations
+    createCollection: async (data: CreateCollectionRequest) => {
+      try {
+        await createMutation.mutateAsync(data);
+        return { success: true };
+      } catch (error: any) {
+        return { success: false, error: error.message };
+      }
+    },
+    updateCollection: async (id: string, data: Partial<Collection>) => {
+      try {
+        await updateMutation.mutateAsync({ id, data });
+        return { success: true };
+      } catch (error: any) {
+        return { success: false, error: error.message };
+      }
+    },
+    deleteCollection: async (id: string) => {
+      try {
+        await deleteMutation.mutateAsync(id);
+        return { success: true };
+      } catch (error: any) {
+        return { success: false, error: error.message };
+      }
+    },
+    addItem: async (collectionId: string, itemType: 'pipeline' | 'dataflow', itemId: string) => {
+      try {
+        await addItemMutation.mutateAsync({ collectionId, itemType, itemId });
+        return { success: true };
+      } catch (error: any) {
+        return { success: false, error: error.message };
+      }
+    },
+    removeItem: async (collectionId: string, itemId: string) => {
+      try {
+        await removeItemMutation.mutateAsync({ collectionId, itemId });
+        return { success: true };
+      } catch (error: any) {
+        return { success: false, error: error.message };
+      }
+    },
+
+    // Helper function to build tree structure
     getCollectionTree: () => {
-      const map = new Map<string, any>();
-      collections.forEach((c) => map.set(c.id, { ...c, children: [] }));
-      const tree: any[] = [];
-      map.forEach((node) => {
-        if (node.parentId && map.has(node.parentId)) {
-          map.get(node.parentId).children.push(node);
+      const collectionMap = new Map<string, any>();
+      const rootCollections: any[] = [];
+
+      // First pass: create map of all collections with children array
+      collections.forEach((collection: any) => {
+        collectionMap.set(collection.id, { ...collection, children: [] });
+      });
+
+      // Second pass: build tree structure
+      collections.forEach((collection: any) => {
+        const node = collectionMap.get(collection.id);
+        if (collection.parentId && collectionMap.has(collection.parentId)) {
+          // Add to parent's children
+          const parent = collectionMap.get(collection.parentId);
+          parent.children.push(node);
         } else {
-          tree.push(node);
+          // Root level collection (no parent or parent not found)
+          rootCollections.push(node);
         }
       });
-      return tree;
+
+      return rootCollections;
     },
+
+    // Loading states
+    isCreating: createMutation.isPending,
+    isUpdating: updateMutation.isPending,
+    isDeleting: deleteMutation.isPending,
+    isAddingItem: addItemMutation.isPending,
+    isRemovingItem: removeItemMutation.isPending,
   };
 }

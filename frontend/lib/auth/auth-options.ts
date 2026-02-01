@@ -79,13 +79,28 @@ export const authOptions: NextAuthOptions = {
         strategy: 'jwt',
         maxAge: 30 * 24 * 60 * 60, // 30 days
     },
+    jwt: {
+        // Enforce JWS (HS256) for Go compatibility
+        async encode({ secret, token }) {
+            const jwt = require('jsonwebtoken');
+            return jwt.sign(token, secret, { algorithm: 'HS256' });
+        },
+        async decode({ secret, token }) {
+            const jwt = require('jsonwebtoken');
+            try {
+                return jwt.verify(token, secret, { algorithms: ['HS256'] });
+            } catch (e) {
+                return null;
+            }
+        },
+    },
     pages: {
         signIn: '/auth/signin',
         signOut: '/auth/signout',
         error: '/auth/error',
     },
     callbacks: {
-        async jwt({ token, user }) {
+        async jwt({ token, user, account }) { // Account needed for initial signin
             if (user) {
                 token.id = user.id;
             }

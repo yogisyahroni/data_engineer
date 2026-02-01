@@ -33,12 +33,38 @@ export class IngestionService {
 
             // 2. Execute Projection (Direct to internal DB or Active connection)
             // For industrial BI, we project to the user's isolated 'imports' schema
-            const connector = new PostgresConnector({
+            let dbConfig = {
                 host: process.env.DB_HOST || 'localhost',
                 port: parseInt(process.env.DB_PORT || '5432'),
                 database: process.env.DB_NAME || 'Inside_engineer1',
                 user: process.env.DB_USER || 'postgres',
                 password: SecretManager.getSecret('DATABASE_PASSWORD'),
+            };
+
+            // Fallback: Parse DATABASE_URL if password is missing (which is common in Prisma setups)
+            const dbUrl = SecretManager.getSecret('DATABASE_URL');
+            if (dbUrl && (!dbConfig.password || dbConfig.password === '')) {
+                try {
+                    // Handle postgresql:// protocol
+                    const parsedUrl = new URL(dbUrl);
+                    dbConfig = {
+                        host: parsedUrl.hostname,
+                        port: parseInt(parsedUrl.port) || 5432,
+                        database: parsedUrl.pathname.substring(1), // Remove leading slash
+                        user: parsedUrl.username,
+                        password: parsedUrl.password,
+                    };
+                } catch (e) {
+                    console.warn('[IngestionService] Failed to parse DATABASE_URL, falling back to individual vars', e);
+                }
+            }
+
+            const connector = new PostgresConnector({
+                host: dbConfig.host,
+                port: dbConfig.port,
+                database: dbConfig.database,
+                user: dbConfig.user,
+                password: dbConfig.password,
             });
 
             await connector.execute(`CREATE SCHEMA IF NOT EXISTS imports;`);

@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { ChartVisualization } from './chart-visualization';
@@ -30,15 +29,6 @@ interface DashboardCardProps {
   onExecute?: (id: string) => void;
 }
 
-// Mock data for preview
-const MOCK_CARD_DATA = [
-  { name: 'Product A', value: 4200 },
-  { name: 'Product B', value: 3800 },
-  { name: 'Product C', value: 2900 },
-  { name: 'Product D', value: 2100 },
-  { name: 'Product E', value: 1500 },
-];
-
 export function DashboardCard({
   id,
   title,
@@ -46,51 +36,32 @@ export function DashboardCard({
   data,
   columns,
   visualizationConfig,
+  aggregationConfig,
   isEditMode,
   onRemove,
   onEdit,
-  onExecute,
-  aggregationConfig,
+  onExecute
 }: DashboardCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
 
   // Aggregation Hook
-  const {
-    data: aggregationData,
-    isLoading: isAggLoading,
-    error: aggError,
-    executeAggregation
-  } = useAggregation();
-
-  // Trigger aggregation fetch on mount or config change
-  useEffect(() => {
-    if (visualizationConfig) {
-      // If using aggregation config (detected via aggregationConfig presence or flag?)
-      // Actually prop is aggregationConfig
-      if (typeof aggregationConfig === 'object') {
-        // Check types if needed, but assuming valid Config
-        executeAggregation(aggregationConfig);
-      }
-    }
-  }, [aggregationConfig, executeAggregation, visualizationConfig]);
+  const { data: aggregationData, isLoading: isAggLoading } = useAggregation({
+    data: data || [],
+    config: aggregationConfig
+  });
 
   // Determine effective data
   const chartData = useMemo(() => {
-    // 1. Props data (highest priority - from parent execution)
-    if (data && data.length > 0) return data;
-
-    // 2. Aggregation data
+    // 1. Aggregation data takes precedence if config exists
     if (aggregationConfig && aggregationData) return aggregationData;
 
-    // 3. Fallback Mock - only if not loading
-    if (isAggLoading) return []; // Empty while loading
+    // 2. Props data (if no aggregation)
+    if (data && data.length > 0) return data;
 
-    // If has queryId but no data, likely mock needed for preview?
-    if (queryId && !data) return MOCK_CARD_DATA; // Or fetch via queryId (TODO)
-
-    return MOCK_CARD_DATA;
-  }, [data, aggregationData, aggregationConfig, isAggLoading, queryId]);
+    // 3. Fallback - empty
+    return [];
+  }, [data, aggregationData, aggregationConfig]);
 
   const isLoading = isAggLoading;
 

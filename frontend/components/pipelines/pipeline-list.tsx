@@ -1,33 +1,16 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { format } from "date-fns";
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Play, Plus, Clock, ExternalLink } from "lucide-react";
+import { Play, Plus, Clock, ExternalLink, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-
-interface Pipeline {
-    id: string;
-    name: string;
-    sourceType: string;
-    mode: string | null;  // ADDED
-    destinationType: string;
-    scheduleCron: string | null;
-    lastRunAt: string | null;
-    lastStatus: string | null;
-    isActive: boolean;
-}
+import { usePipelines } from "@/hooks/use-pipelines";
+import { cn } from "@/lib/utils";
 
 interface PipelineListProps {
     workspaceId: string;
@@ -35,36 +18,32 @@ interface PipelineListProps {
 
 export function PipelineList({ workspaceId }: PipelineListProps) {
     const router = useRouter();
-    const [pipelines, setPipelines] = useState<Pipeline[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
-
-    const fetchPipelines = async () => {
-        try {
-            const res = await fetch(`/api/pipelines?workspaceId=${workspaceId}`);
-            if (!res.ok) throw new Error("Failed to fetch pipelines");
-            const data = await res.json();
-            setPipelines(data);
-        } catch (error) {
-            console.error(error);
-            toast.error("Failed to load pipelines");
-        } finally {
-            setIsLoading(false);
-        }
-    };
+    const {
+        pipelines,
+        isLoading,
+        error,
+        fetchPipelines,
+        runPipeline,
+    } = usePipelines({ workspaceId });
 
     useEffect(() => {
         fetchPipelines();
-    }, [workspaceId]);
+    }, [fetchPipelines]);
+
+    useEffect(() => {
+        if (error) {
+            toast.error(error);
+        }
+    }, [error]);
 
     const handleRunNow = async (id: string) => {
-        try {
-            toast.info("Triggering pipeline...");
-            const res = await fetch(`/api/pipelines/${id}/run`, { method: "POST" });
-            if (!res.ok) throw new Error("Failed to trigger run");
-            toast.success("Pipeline started");
-            fetchPipelines(); // Refresh status
-        } catch (error) {
-            toast.error("Failed to trigger pipeline");
+        toast.info("Triggering pipeline...");
+        const result = await runPipeline(id);
+
+        if (result.success) {
+            toast.success("Pipeline started successfully");
+        } else {
+            toast.error(result.error || "Failed to trigger pipeline");
         }
     };
 
@@ -101,11 +80,35 @@ export function PipelineList({ workspaceId }: PipelineListProps) {
                             </TableRow>
                         ) : (
                             pipelines.map((pipeline) => (
-                                <TableRow key={pipeline.id}>
+                                <TableRow
+                                    key={pipeline.id}
+                                    className={cn(
+                                        (pipeline as any)._optimistic && "opacity-70"
+                                    )}
+                                >
                                     <TableCell className="font-medium">
-                                        <div className="flex items-center gap-2 cursor-pointer hover:underline"
-                                            onClick={() => router.push(`/workspace/${workspaceId}/pipelines/${pipeline.id}`)}>
-                                            {pipeline.name} <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                                        <div className="flex items-center gap-2">
+                                            <div
+                                                className="flex items-center gap-2 cursor-pointer hover:underline"
+                                                onClick={() => router.push(`/workspace/${workspaceId}/pipelines/${pipeline.id}`)}
+                                            >
+                                                {pipeline.name}
+                                                <ExternalLink className="h-3 w-3 text-muted-foreground" />
+                                            </div>
+
+                                            {/* Optimistic state badges */}
+                                            {(pipeline as any)._optimistic && (pipeline as any)._status === 'pending' && (
+                                                <Badge variant="secondary" className="ml-2">
+                                                    <Loader2 className="mr-1 h-3 w-3 animate-spin" />
+                                                    Saving...
+                                                </Badge>
+                                            )}
+
+                                            {(pipeline as any)._status === 'error' && (
+                                                <Badge variant="destructive" className="ml-2">
+                                                    Failed
+                                                </Badge>
+                                            )}
                                         </div>
                                     </TableCell>
                                     <TableCell>

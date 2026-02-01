@@ -245,23 +245,7 @@ export class ConnectionService {
         }
     }
 
-    getMockSchema(): SchemaInfo {
-        return {
-            tables: [
-                {
-                    name: 'customers',
-                    schema: 'public',
-                    rowCount: 1250,
-                    columns: [
-                        { name: 'id', type: 'uuid', nullable: false, isPrimary: true, defaultValue: 'gen_random_uuid()', description: 'Unique customer identifier' },
-                        { name: 'name', type: 'varchar', nullable: false, isPrimary: false, defaultValue: null, description: 'Customer full name' },
-                    ],
-                    foreignKeys: []
-                }
-            ],
-            lastSyncedAt: new Date(),
-        };
-    }
+
 }
 
 export const connectionService = new ConnectionService();

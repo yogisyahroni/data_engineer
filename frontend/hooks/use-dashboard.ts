@@ -4,28 +4,6 @@ import { useState, useCallback, useEffect } from 'react';
 import { Dashboard, DashboardCard, VisualizationConfig, DashboardFilter } from '@/lib/types';
 import { useQueryExecution } from '@/hooks/use-query-execution';
 
-// Mock data for initial testing
-const MOCK_DASHBOARD: Dashboard = {
-    id: '1',
-    name: 'Sales Overview',
-    description: 'Main sales KPIs and trends',
-    collectionId: 'root',
-    userId: 'user-1',
-    isPublic: false,
-    cards: [
-        {
-            id: 'card-1',
-            dashboardId: '1',
-            position: { x: 0, y: 0, w: 4, h: 4 },
-            type: 'text',
-            title: 'Welcome',
-            description: 'Dashboard introduction'
-        }
-    ],
-    createdAt: new Date(),
-    updatedAt: new Date()
-};
-
 export function useDashboard(dashboardId: string) {
     const [dashboard, setDashboard] = useState<Dashboard | null>(null);
     const [isLoading, setIsLoading] = useState(true);

@@ -1,5 +1,5 @@
 import React from "react"
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { UserProvider } from '@/contexts/user-context'
@@ -7,6 +7,7 @@ import { DatabaseProvider } from '@/contexts/database-context'
 import { StoryProvider } from '@/contexts/story-context'
 import { SidebarProvider } from '@/contexts/sidebar-context'
 import { WorkspaceProvider } from '@/contexts/workspace-context'
+import { Providers } from './providers'
 import './globals.css'
 
 const _geist = Geist({ subsets: ["latin"] });
@@ -55,25 +56,27 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`font-sans antialiased bg-background text-foreground transition-colors duration-300`}>
-        <ThemeProvider
-          attribute="class"
-          defaultTheme="system"
-          enableSystem
-          disableTransitionOnChange
-        >
-          <StoryProvider>
-            <DatabaseProvider>
-              <UserProvider>
-                <WorkspaceProvider>
-                  <SidebarProvider>
-                    <MainBreadcrumbs />
-                    {children}
-                  </SidebarProvider>
-                </WorkspaceProvider>
-              </UserProvider>
-            </DatabaseProvider>
-          </StoryProvider>
-        </ThemeProvider>
+        <Providers>
+          <ThemeProvider
+            attribute="class"
+            defaultTheme="system"
+            enableSystem
+            disableTransitionOnChange
+          >
+            <StoryProvider>
+              <DatabaseProvider>
+                <UserProvider>
+                  <WorkspaceProvider>
+                    <SidebarProvider>
+                      <MainBreadcrumbs />
+                      {children}
+                    </SidebarProvider>
+                  </WorkspaceProvider>
+                </UserProvider>
+              </DatabaseProvider>
+            </StoryProvider>
+          </ThemeProvider>
+        </Providers>
       </body>
     </html>
   )
