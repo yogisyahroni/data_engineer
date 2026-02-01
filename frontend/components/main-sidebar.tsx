@@ -4,6 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   ChevronDown,
   Plus,
@@ -17,8 +18,13 @@ import {
   BookOpen,
   Database,
   Upload,
+  Bell,
+  Activity,
+  Clock,
+  Boxes,
 } from 'lucide-react';
 import { useDatabase } from '@/contexts/database-context';
+import { useNotifications } from '@/hooks/use-notifications';
 import { ModeToggle } from '@/components/mode-toggle';
 
 interface SidebarProps {
@@ -30,6 +36,7 @@ export function MainSidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const { databases, selectedDatabase, setSelectedDatabase } = useDatabase();
   const [showDatabases, setShowDatabases] = useState(true);
+  const { unreadCount } = useNotifications();
 
   const isActive = (path: string) => {
     if (path === '/') return pathname === '/';
@@ -47,6 +54,9 @@ export function MainSidebar({ isOpen, onClose }: SidebarProps) {
     { icon: Search, label: 'Explorer', href: '/explorer' },
     { icon: BarChart3, label: 'Dashboards', href: '/dashboards' },
     { icon: FolderOpen, label: 'Collections', href: '/saved-queries' },
+    { icon: Bell, label: 'Notifications', href: '/notifications', badge: unreadCount },
+    { icon: Activity, label: 'Activity', href: '/activity' },
+    { icon: Clock, label: 'Scheduler', href: '/admin/scheduler' },
     // Only show Lineage if inside a workspace
     ...(workspaceId ? [{ icon: Boxes, label: 'Lineage', href: `/workspace/${workspaceId}/pipelines/lineage` }] : []),
   ];
@@ -98,7 +108,15 @@ export function MainSidebar({ isOpen, onClose }: SidebarProps) {
                   onClick={() => onClose()}
                 >
                   <Icon className={`w-4 h-4 flex-shrink-0 ${active ? 'text-primary' : ''}`} />
-                  <span>{item.label}</span>
+                  <span className="flex-1">{item.label}</span>
+                  {item.badge !== undefined && item.badge > 0 && (
+                    <Badge
+                      variant="destructive"
+                      className="ml-auto h-5 min-w-[20px] px-1.5 text-xs font-medium"
+                    >
+                      {item.badge > 99 ? '99+' : item.badge}
+                    </Badge>
+                  )}
                 </Button>
               </Link>
             );

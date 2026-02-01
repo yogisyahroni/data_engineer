@@ -23,7 +23,7 @@ export function useDashboard(dashboardId: string) {
     const fetchDashboard = useCallback(async () => {
         setIsLoading(true);
         try {
-            const res = await fetch(`/api/dashboards/${dashboardId}`);
+            const res = await fetch(`/api/go/dashboards/${dashboardId}`);
             if (!res.ok) throw new Error('Failed to fetch dashboard');
             const data = await res.json();
 
@@ -106,7 +106,7 @@ export function useDashboard(dashboardId: string) {
 
     const saveDashboard = useCallback(async () => {
         try {
-            const res = await fetch(`/api/dashboards/${dashboardId}`, {
+            const res = await fetch(`/api/go/dashboards/${dashboardId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -139,7 +139,7 @@ export function useDashboard(dashboardId: string) {
 
     const togglePublic = useCallback(async (isPublic: boolean) => {
         try {
-            const res = await fetch(`/api/dashboards/${dashboardId}`, {
+            const res = await fetch(`/api/go/dashboards/${dashboardId}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ isPublic })

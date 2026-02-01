@@ -29,7 +29,7 @@ export default function CollectionsPage() {
         isLoading,
         createCollection,
         getCollectionTree
-    } = useCollections({ autoFetch: true });
+    } = useCollections();
 
     const [selectedCollectionId, setSelectedCollectionId] = useState<string | undefined>();
     const [isCreateOpen, setIsCreateOpen] = useState(false);
@@ -77,10 +77,8 @@ export default function CollectionsPage() {
 
         await createCollection({
             name: newCollectionName,
-            parentId: parentCollectionId,
-            icon: 'folder', // Default icon
-            isPublic: false // Default private
-        } as any); // Cast to any to bypass potential TS mismatch for now
+            description: `Collection created from ${selectedCollection?.name || 'root'}`,
+        });
 
         setIsCreateOpen(false);
         setNewCollectionName('');
@@ -95,7 +93,8 @@ export default function CollectionsPage() {
 
     // Filter content based on selection
     const selectedCollection = collections.find(c => c.id === selectedCollectionId);
-    const subCollections = collections.filter(c => c.parentId === selectedCollectionId);
+    // Backend doesn't support parent-child relationships, so show all collections
+    const subCollections: typeof collections = [];
 
     // In a real app, we would also filter Dashboards and Queries here
     // const dashboards = ...
@@ -187,79 +186,28 @@ export default function CollectionsPage() {
 
 
 
-                            {/* Dashboards Section */}
-                            {selectedCollection?.dashboards && selectedCollection.dashboards.length > 0 && (
+                            {/* Collection Items Section */}
+                            {selectedCollection?.items && selectedCollection.items.length > 0 && (
                                 <div className="mb-8">
                                     <h2 className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wider">
-                                        Dashboards
+                                        Items
                                     </h2>
                                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                        {selectedCollection.dashboards.map(dashboard => (
+                                        {selectedCollection.items.map(item => (
                                             <div
-                                                key={dashboard.id}
+                                                key={item.id}
                                                 className="group p-4 border rounded-lg hover:border-primary/50 hover:bg-muted/50 transition-all cursor-pointer flex items-center gap-3 relative"
-                                                onClick={() => window.location.href = `/dashboards/${dashboard.id}`}
                                             >
-                                                <LayoutGrid className="h-8 w-8 text-orange-500 fill-orange-500/20" />
+                                                {item.itemType === 'pipeline' ? (
+                                                    <LayoutGrid className="h-8 w-8 text-blue-500 fill-blue-500/20" />
+                                                ) : (
+                                                    <List className="h-8 w-8 text-green-500 fill-green-500/20" />
+                                                )}
                                                 <div className="min-w-0 flex-1">
-                                                    <h3 className="font-medium truncate">{dashboard.name}</h3>
+                                                    <h3 className="font-medium truncate">{item.itemType}</h3>
                                                     <p className="text-xs text-muted-foreground truncate">
-                                                        {dashboard.description || 'No description'}
+                                                        ID: {item.itemId}
                                                     </p>
-                                                </div>
-                                                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
-                                                                <MoreHorizontal className="h-4 w-4" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
-                                                            <DropdownMenuItem onClick={(e) => openMoveDialog(e, dashboard.id, 'dashboard')}>
-                                                                Move to Folder
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            )}
-
-                            {/* Saved Queries Section */}
-                            {selectedCollection?.queries && selectedCollection.queries.length > 0 && (
-                                <div className="mb-8">
-                                    <h2 className="text-sm font-medium text-muted-foreground mb-4 uppercase tracking-wider">
-                                        Saved Queries
-                                    </h2>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                                        {selectedCollection.queries.map(query => (
-                                            <div
-                                                key={query.id}
-                                                className="group p-4 border rounded-lg hover:border-primary/50 hover:bg-muted/50 transition-all cursor-pointer flex items-center gap-3 relative"
-                                            // onClick={() => window.location.href = `/queries/${query.id}`} 
-                                            >
-                                                <List className="h-8 w-8 text-green-500 fill-green-500/20" />
-                                                <div className="min-w-0 flex-1">
-                                                    <h3 className="font-medium truncate">{query.name}</h3>
-                                                    <p className="text-xs text-muted-foreground truncate">
-                                                        {query.description || 'No description'}
-                                                    </p>
-                                                </div>
-                                                <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <DropdownMenu>
-                                                        <DropdownMenuTrigger asChild>
-                                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={(e) => e.stopPropagation()}>
-                                                                <MoreHorizontal className="h-4 w-4" />
-                                                            </Button>
-                                                        </DropdownMenuTrigger>
-                                                        <DropdownMenuContent align="end">
-                                                            <DropdownMenuItem onClick={(e) => openMoveDialog(e, query.id, 'query')}>
-                                                                Move to Folder
-                                                            </DropdownMenuItem>
-                                                        </DropdownMenuContent>
-                                                    </DropdownMenu>
                                                 </div>
                                             </div>
                                         ))}
@@ -269,8 +217,7 @@ export default function CollectionsPage() {
 
                             {/* Empty State */}
                             {(!subCollections.length &&
-                                (!selectedCollection?.dashboards?.length) &&
-                                (!selectedCollection?.queries?.length)) && (
+                                (!selectedCollection?.items?.length)) && (
                                     <div className="flex flex-col items-center justify-center h-64 border-2 border-dashed rounded-lg">
                                         <Folder className="h-12 w-12 text-muted-foreground/30 mb-4" />
                                         <h3 className="text-lg font-medium text-muted-foreground">Empty Collection</h3>

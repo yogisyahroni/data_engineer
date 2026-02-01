@@ -14,6 +14,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
+	"github.com/gofiber/websocket/v2"
 	"github.com/joho/godotenv"
 	"golang.org/x/time/rate"
 )
@@ -63,6 +64,31 @@ func main() {
 	cronService.Start()
 	log.Println("✅ Cron jobs started (budget reset, view refresh)")
 
+	// 2.11. Initialize WebSocket Hub for real-time updates
+	wsHub := services.NewWebSocketHub()
+	go wsHub.Run()
+	log.Println("✅ WebSocket hub started")
+
+	// 2.12. Initialize Notification Service
+	notificationService := services.NewNotificationService(database.DB, wsHub)
+	notificationHandler := handlers.NewNotificationHandler(notificationService)
+	log.Println("✅ Notification service initialized")
+
+	// 2.13. Initialize Activity Service
+	activityService := services.NewActivityService(database.DB, wsHub)
+	activityHandler := handlers.NewActivityHandler(activityService)
+	log.Println("✅ Activity service initialized")
+
+	// 2.14. Initialize Scheduler Service (UI-configurable)
+	schedulerService := services.NewSchedulerService(database.DB)
+	schedulerService.Start()
+	schedulerHandler := handlers.NewSchedulerHandler(schedulerService)
+	log.Println("✅ Scheduler service initialized")
+
+	// 2.15. Initialize WebSocket Handler
+	wsHandler := handlers.NewWebSocketHandler(wsHub)
+	log.Println("✅ WebSocket handler initialized")
+
 	// 3. Initialize Job Queue (5 workers)
 	services.InitJobQueue(5)
 	log.Println("✅ Job queue initialized with 5 workers")
@@ -74,6 +100,7 @@ func main() {
 		<-sigChan
 		log.Println("🛑 Shutting down gracefully...")
 		cronService.Stop()
+		schedulerService.Stop()
 		services.ShutdownJobQueue()
 		os.Exit(0)
 	}()
@@ -94,12 +121,47 @@ func main() {
 	// 5. Routes
 	api := app.Group("/api")
 
-	// Health Check (Public)
+	// Health Check Endpoints (Public)
+	// Basic health check
 	api.Get("/health", func(c *fiber.Ctx) error {
 		return c.JSON(fiber.Map{
-			"status":  "OK",
-			"service": "Go Backend",
-			"uptime":  "running",
+			"status":  "ok",
+			"service": "InsightEngine Backend",
+			"version": "1.0.0",
+		})
+	})
+
+	// Readiness check (includes database connectivity)
+	api.Get("/health/ready", func(c *fiber.Ctx) error {
+		// Check database connection
+		sqlDB, err := database.DB.DB()
+		if err != nil {
+			return c.Status(503).JSON(fiber.Map{
+				"status":   "not_ready",
+				"database": "error",
+				"error":    err.Error(),
+			})
+		}
+
+		if err := sqlDB.Ping(); err != nil {
+			return c.Status(503).JSON(fiber.Map{
+				"status":   "not_ready",
+				"database": "disconnected",
+				"error":    err.Error(),
+			})
+		}
+
+		return c.JSON(fiber.Map{
+			"status":   "ready",
+			"database": "connected",
+			"service":  "InsightEngine Backend",
+		})
+	})
+
+	// Liveness check (simple check if server is alive)
+	api.Get("/health/live", func(c *fiber.Ctx) error {
+		return c.JSON(fiber.Map{
+			"status": "alive",
 		})
 	})
 
@@ -300,6 +362,42 @@ func main() {
 	api.Get("/modeling/metrics/:id", middleware.AuthMiddleware, modelingHandler.GetMetricDefinition)
 	api.Put("/modeling/metrics/:id", middleware.AuthMiddleware, modelingHandler.UpdateMetricDefinition)
 	api.Delete("/modeling/metrics/:id", middleware.AuthMiddleware, modelingHandler.DeleteMetricDefinition)
+
+	// Batch 5: Notifications & Real-time Routes (Protected)
+
+	// WebSocket connection (requires auth)
+	app.Get("/api/v1/ws", middleware.AuthMiddleware, websocket.New(wsHandler.HandleConnection))
+
+	// Notification routes
+	api.Get("/notifications", middleware.AuthMiddleware, notificationHandler.GetNotifications)
+	api.Get("/notifications/unread", middleware.AuthMiddleware, notificationHandler.GetUnreadNotifications)
+	api.Get("/notifications/unread-count", middleware.AuthMiddleware, notificationHandler.GetUnreadCount)
+	api.Put("/notifications/:id/read", middleware.AuthMiddleware, notificationHandler.MarkAsRead)
+	api.Put("/notifications/read-all", middleware.AuthMiddleware, notificationHandler.MarkAllAsRead)
+	api.Delete("/notifications/:id", middleware.AuthMiddleware, notificationHandler.DeleteNotification)
+	api.Delete("/notifications/read", middleware.AuthMiddleware, notificationHandler.DeleteReadNotifications)
+
+	// Admin-only notification routes
+	api.Post("/notifications", middleware.AuthMiddleware, notificationHandler.CreateNotification)                    // TODO: Add admin middleware
+	api.Post("/notifications/broadcast", middleware.AuthMiddleware, notificationHandler.BroadcastSystemNotification) // TODO: Add admin middleware
+
+	// Activity feed routes
+	api.Get("/activity", middleware.AuthMiddleware, activityHandler.GetUserActivity)
+	api.Get("/activity/workspace/:id", middleware.AuthMiddleware, activityHandler.GetWorkspaceActivity)
+	api.Get("/activity/recent", middleware.AuthMiddleware, activityHandler.GetRecentActivity) // TODO: Add admin middleware
+
+	// Scheduler routes
+	api.Get("/scheduler/jobs", middleware.AuthMiddleware, schedulerHandler.ListJobs)
+	api.Get("/scheduler/jobs/:id", middleware.AuthMiddleware, schedulerHandler.GetJob)
+	api.Post("/scheduler/jobs", middleware.AuthMiddleware, schedulerHandler.CreateJob)       // TODO: Add admin middleware
+	api.Put("/scheduler/jobs/:id", middleware.AuthMiddleware, schedulerHandler.UpdateJob)    // TODO: Add admin middleware
+	api.Delete("/scheduler/jobs/:id", middleware.AuthMiddleware, schedulerHandler.DeleteJob) // TODO: Add admin middleware
+	api.Post("/scheduler/jobs/:id/pause", middleware.AuthMiddleware, schedulerHandler.PauseJob)
+	api.Post("/scheduler/jobs/:id/resume", middleware.AuthMiddleware, schedulerHandler.ResumeJob)
+	api.Post("/scheduler/jobs/:id/trigger", middleware.AuthMiddleware, schedulerHandler.TriggerJob)
+
+	// WebSocket stats (for monitoring)
+	api.Get("/ws/stats", middleware.AuthMiddleware, wsHandler.GetStats)
 
 	// 6. Start Server
 	port := os.Getenv("PORT")

@@ -192,29 +192,13 @@ export function useCollections() {
     },
 
     // Helper function to build tree structure
+    // Note: Backend Collection model doesn't have parentId, so we return a flat structure
     getCollectionTree: () => {
-      const collectionMap = new Map<string, any>();
-      const rootCollections: any[] = [];
-
-      // First pass: create map of all collections with children array
-      collections.forEach((collection: any) => {
-        collectionMap.set(collection.id, { ...collection, children: [] });
-      });
-
-      // Second pass: build tree structure
-      collections.forEach((collection: any) => {
-        const node = collectionMap.get(collection.id);
-        if (collection.parentId && collectionMap.has(collection.parentId)) {
-          // Add to parent's children
-          const parent = collectionMap.get(collection.parentId);
-          parent.children.push(node);
-        } else {
-          // Root level collection (no parent or parent not found)
-          rootCollections.push(node);
-        }
-      });
-
-      return rootCollections;
+      // Return all collections as root-level items with empty children
+      return collections.map((collection: any) => ({
+        ...collection,
+        children: []
+      }));
     },
 
     // Loading states

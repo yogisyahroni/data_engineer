@@ -57,6 +57,7 @@ const withPWA = withPWAInit({
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  output: 'standalone', // Enable standalone output for Docker
   typescript: {
     ignoreBuildErrors: true,
   },

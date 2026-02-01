@@ -3,6 +3,8 @@
 import { Button } from '@/components/ui/button';
 import { Database, Menu } from 'lucide-react';
 import { useDatabase } from '@/contexts/database-context';
+import { NotificationBell } from '@/components/notifications';
+import { WebSocketIndicator } from '@/components/notifications';
 
 interface WorkspaceHeaderProps {
   onToggleSchemaBrowser: () => void;
@@ -45,18 +47,22 @@ export function WorkspaceHeader({
           />
         </div>
 
-        {/* Right - Schema Button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={onToggleSchemaBrowser}
-          className="gap-2 hidden sm:flex"
-          data-testid="toggle-schema-browser"
-        >
-          <Database className="w-4 h-4" />
-          Schema
-        </Button>
-        {rightContent}
+        {/* Right - Actions */}
+        <div className="flex items-center gap-2">
+          <WebSocketIndicator />
+          <NotificationBell />
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onToggleSchemaBrowser}
+            className="gap-2 hidden sm:flex"
+            data-testid="toggle-schema-browser"
+          >
+            <Database className="w-4 h-4" />
+            Schema
+          </Button>
+          {rightContent}
+        </div>
       </div>
     </header>
   );

@@ -11,7 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Collection } from '@/lib/types';
+import { Collection } from '@/lib/types/batch3';
 
 interface MoveToCollectionDialogProps {
     open: boolean;

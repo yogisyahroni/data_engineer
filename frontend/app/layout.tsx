@@ -45,6 +45,7 @@ export const metadata: Metadata = {
 }
 
 import { ThemeProvider } from "@/components/theme-provider"
+import { WebSocketProvider } from "@/components/providers/websocket-provider"
 
 import { MainBreadcrumbs } from "@/components/main-breadcrumbs"
 
@@ -68,8 +69,10 @@ export default function RootLayout({
                 <UserProvider>
                   <WorkspaceProvider>
                     <SidebarProvider>
-                      <MainBreadcrumbs />
-                      {children}
+                      <WebSocketProvider>
+                        <MainBreadcrumbs />
+                        {children}
+                      </WebSocketProvider>
                     </SidebarProvider>
                   </WorkspaceProvider>
                 </UserProvider>
