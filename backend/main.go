@@ -163,6 +163,16 @@ func main() {
 	// Protected routes (require authentication)
 	api.Post("/auth/change-password", middleware.AuthMiddleware, authHandler.ChangePassword)
 
+	// OAuth/SSO Authentication (Multi-provider: Google, Azure AD, Okta, SAML)
+	oauthService := services.NewOAuthService(database.DB)
+	oauthHandler := handlers.NewOAuthHandler(oauthService)
+	services.LogInfo("oauth_service_init", "OAuth service initialized", map[string]interface{}{"providers": oauthService.ListProviders()})
+
+	// OAuth Routes
+	api.Get("/auth/providers", oauthHandler.GetProviders)            // List enabled providers
+	api.Get("/auth/:provider", oauthHandler.InitiateAuth)            // Redirect to provider
+	api.Get("/auth/:provider/callback", oauthHandler.HandleCallback) // Handle OAuth callback
+
 	// ---------------------------------------------------------
 	// Initialize Services & Handlers (Dependency Injection)
 	// ---------------------------------------------------------

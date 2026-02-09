@@ -2553,32 +2553,71 @@
   - **Dependencies:** TASK-079 ✅
   - **Status:** Backend 100% complete
 
-- [ ] **TASK-081:** RBAC UI
-  - **File:** `frontend/app/admin/roles/page.tsx`
-  - **Acceptance:** Role editor, permission matrix, user assignment
-  - **Effort:** 10 hours
+- [x] **TASK-081:** RBAC UI ✅ **COMPLETED 2026-02-09**
+  - **Files:**
+    - `frontend/types/rbac.ts` (190 lines - Complete TypeScript types)
+    - `frontend/lib/api/config.ts` (120 lines - API configuration & request wrapper)
+    - `frontend/lib/api/rbac.ts` (370 lines - RBAC API service layer)
+    - `frontend/app/admin/roles/page.tsx` (650 lines - Complete UI)
+  - **Acceptance:** ✅ All criteria met
+    - ✅ Role list with search and filtering
+    - ✅ Role editor dialog (create/edit/view modes)
+    - ✅ Permission matrix with grouped checkboxes and expand/collapse
+    - ✅ User-role assignment dialog
+    - ✅ System role protection (read-only for system roles)
+    - ✅ Full CRUD operations for custom roles
+  - **Features:**
+    - Stats cards: Total/System/Custom role counts
+    - Permission grouping by resource type
+    - Collapsible permission groups with select-all
+    - Real-time permission count indicators
+    - Structured logging for all operations (Phase 8 integration ✅)
+    - Environment-aware API configuration
+    - Type-safe API calls with error handling
+  - **UI Components:**
+    - Main page: Role list table with actions
+    - RoleEditorDialog: Inline modal for create/edit/view
+    - PermissionMatrix: Grouped checkbox system
+    - UserRoleDialog: User-role management
+  - **Effort:** 10 hours → **ACTUAL:** 8 hours
   - **Dependencies:** TASK-080 ✅
+  - **Status:** Frontend 100% complete, Backend integration ready
+  - **Total Lines:** ~1,330 lines across 4 files
 
 #### 3.1.2 Additional SSO Providers
 
-- [ ] **TASK-082:** Microsoft Azure AD SSO
-  - **File:** `backend/services/azure_ad_oauth.go`
-  - **Acceptance:** Azure AD OAuth2, tenant support
-  - **Effort:** 8 hours
-  - **Dependencies:** TASK-007 (Google SSO pattern)
+- [x] **TASK-082:** Microsoft Azure AD SSO ✅ COMPLETE
+  - **Files:** `backend/services/providers/azure_ad_provider.go`
+  - **Acceptance:** Azure AD OAuth2, multi-tenant support (common/organizations/specific)
+  - **Effort:** 8 hours → **ACTUAL:** 2 hours
+  - **Dependencies:** TASK-007 (Google SSO pattern) ✅
+  - **Implementation:**
+    - Microsoft Graph API integration for user info
+    - Support for mail and userPrincipalName fallback
+    - Multi-tenant configuration via AZURE_TENANT env var
 
-- [ ] **TASK-083:** Okta SSO
-  - **File:** `backend/services/okta_oauth.go`
-  - **Acceptance:** Okta OAuth2/OIDC
-  - **Effort:** 8 hours
-  - **Dependencies:** TASK-007
+- [x] **TASK-083:** Okta SSO ✅ COMPLETE
+  - **Files:** `backend/services/providers/okta_provider.go`
+  - **Acceptance:** Okta OAuth2/OIDC with custom domain support
+  - **Effort:** 8 hours → **ACTUAL:** 2 hours
+  - **Dependencies:** TASK-007 ✅
+  - **Implementation:**
+    - Custom Okta domain support (OKTA_DOMAIN)
+    - Authorization server configuration (OKTA_AUTH_SERVER_ID)
+    - OIDC userinfo endpoint integration
 
-- [ ] **TASK-084:** SAML 2.0 support
-  - **File:** `backend/services/saml_service.go`
-  - **Acceptance:** SAML IdP integration
-  - **Effort:** 16 hours
+- [x] **TASK-084:** SAML 2.0 support ✅ COMPLETE
+  - **Files:** `backend/services/providers/saml_provider.go`
+  - **Acceptance:** SAML IdP integration with certificate management
+  - **Effort:** 16 hours → **ACTUAL:** 4 hours
   - **Dependencies:** None
-  - **Note:** Complex, use library like `crewjam/saml`
+  - **Note:** Uses `crewjam/saml` library
+  - **Implementation:**
+    - Certificate-based authentication (SP cert/key pair)
+    - IdP metadata fetching and validation
+    - SAML assertion parsing with attribute mapping
+    - Support for common SAML attributes (email, name, etc.)
+    - Self-signed certificate generation helper for development
 
 #### 3.1.3 Data Governance
 
