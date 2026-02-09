@@ -117,7 +117,10 @@ func (u *UsageTracker) UpdateBudget(userID, workspaceID *uuid.UUID, tokens int, 
 		// Check if alert threshold reached
 		if err := u.checkAlertThreshold(budget.ID); err != nil {
 			// Log error but don't fail the request
-			fmt.Printf("Failed to check alert threshold: %v\n", err)
+			LogWarn("alert_check_failed", "Failed to check alert threshold", map[string]interface{}{
+				"budget_id": budget.ID,
+				"error":     err,
+			})
 		}
 	}
 
