@@ -534,6 +534,40 @@ func main() {
 	api.Delete("/geojson/:id", middleware.AuthMiddleware, geoJSONHandler.DeleteGeoJSON)
 	services.LogInfo("routes_registered", "GeoJSON routes registered", map[string]interface{}{"endpoint": "/api/geojson", "operations": "Upload, List, Get, Update, Delete"})
 
+	// Frontend Logging Routes (Phase 8 - Frontend Logger Infrastructure)
+	frontendLogHandler := handlers.NewFrontendLogHandler(database.DB)
+	api.Post("/logs/frontend", frontendLogHandler.CreateFrontendLog)                                                               // Public endpoint for frontend logging
+	api.Get("/logs/frontend", middleware.AuthMiddleware, middleware.AdminMiddleware, frontendLogHandler.GetFrontendLogs)           // Admin only
+	api.Delete("/logs/frontend/cleanup", middleware.AuthMiddleware, middleware.AdminMiddleware, frontendLogHandler.CleanupOldLogs) // Admin only
+	services.LogInfo("routes_registered", "Frontend logging routes registered", map[string]interface{}{"endpoint": "/api/logs/frontend"})
+
+	// RBAC Routes (Protected) - TASK-079 Granular Permission System
+	permissionHandler := handlers.NewPermissionHandler(database.DB)
+
+	// Permission routes
+	api.Get("/permissions", middleware.AuthMiddleware, permissionHandler.GetAllPermissions)
+	api.Get("/permissions/resource/:resource", middleware.AuthMiddleware, permissionHandler.GetPermissionsByResource)
+	api.Post("/permissions/check", middleware.AuthMiddleware, permissionHandler.CheckUserPermission)
+
+	// Role routes (Admin required for create/update/delete)
+	api.Get("/roles", middleware.AuthMiddleware, permissionHandler.GetAllRoles)
+	api.Get("/roles/:id", middleware.AuthMiddleware, permissionHandler.GetRoleByID)
+	api.Post("/roles", middleware.AuthMiddleware, middleware.AdminMiddleware, permissionHandler.CreateRole)
+	api.Put("/roles/:id", middleware.AuthMiddleware, middleware.AdminMiddleware, permissionHandler.UpdateRole)
+	api.Delete("/roles/:id", middleware.AuthMiddleware, middleware.AdminMiddleware, permissionHandler.DeleteRole)
+	api.Put("/roles/:id/permissions", middleware.AuthMiddleware, middleware.AdminMiddleware, permissionHandler.AssignPermissionsToRole)
+
+	// User-Role assignment routes (Admin required)
+	api.Get("/users/:id/roles", middleware.AuthMiddleware, permissionHandler.GetUserRoles)
+	api.Get("/users/:id/permissions", middleware.AuthMiddleware, permissionHandler.GetUserPermissions)
+	api.Post("/users/:id/roles", middleware.AuthMiddleware, middleware.AdminMiddleware, permissionHandler.AssignRoleToUser)
+	api.Delete("/users/:id/roles/:roleId", middleware.AuthMiddleware, middleware.AdminMiddleware, permissionHandler.RemoveRoleFromUser)
+
+	services.LogInfo("routes_registered", "RBAC routes registered (TASK-079)", map[string]interface{}{
+		"endpoints": []string{"/api/permissions", "/api/roles", "/api/users/:id/roles"},
+		"features":  []string{"Permission management", "Role management", "User-role assignment"},
+	})
+
 	// WebSocket stats (for monitoring)
 	api.Get("/ws/stats", middleware.AuthMiddleware, wsHandler.GetStats)
 

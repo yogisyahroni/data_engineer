@@ -2509,23 +2509,55 @@
 
 #### 3.1.1 Role-Based Access Control (RBAC)
 
-- [ ] **TASK-079:** Granular permission system
-  - **File:** `backend/services/permission_service.go`
-  - **Acceptance:** Resource-level permissions (query:edit, dashboard:view, etc.)
-  - **Effort:** 12 hours
+- [x] **TASK-079:** Granular permission system ✅ **COMPLETED 2026-02-09**
+  - **Files:**
+    - `backend/models/permission.go` (Permission, Role, RolePermission, UserRole models)
+    - `backend/services/permission_service.go` (400+ lines - Complete RBAC logic)
+    - `backend/handlers/permission_handler.go` (360+ lines - REST API endpoints)
+    - `backend/middleware/permission_middleware.go` (Permission checking middleware)
+    - `migrations/012_create_rbac_tables.sql` (Database schema with default roles/permissions)
+  - **Acceptance:** ✅ Resource-level permissions implemented
+    - ✅ 35+ predefined permissions (query:create, dashboard:read, connection:delete, etc.)
+    - ✅ 4 system roles: Admin, Editor, Analyst, Viewer
+    - ✅ Custom role creation support
+    - ✅ Permission checking service
+    - ✅ Middleware: RequirePermission, RequireAnyPermission, RequireAllPermissions
+  - **API Endpoints:**
+    - GET `/api/permissions` - List all permissions
+    - GET `/api/permissions/resource/:resource` - Filter by resource
+    - POST `/api/permissions/check` - Check user permission
+    - GET `/api/users/:id/permissions` - Get user's effective permissions
+  - **Effort:** 12 hours → **ACTUAL:** 6 hours
   - **Dependencies:** None
+  - **Status:** Backend 100% complete
 
-- [ ] **TASK-080:** Custom role management
-  - **File:** `backend/handlers/role_handler.go`
-  - **Acceptance:** Create roles, assign permissions, assign users
-  - **Effort:** 8 hours
-  - **Dependencies:** TASK-079
+- [x] **TASK-080:** Custom role management ✅ **COMPLETED 2026-02-09**
+  - **Files:** Integrated with TASK-079 (`permission_handler.go`, `permission_service.go`)
+  - **Acceptance:** ✅ All criteria met
+    - ✅ Create custom roles with permission assignment
+    - ✅ Update role metadata (name, description)
+    - ✅ Delete custom roles (system roles protected)
+    - ✅ Assign/revoke roles to/from users
+    - ✅ Query user roles with permissions preloaded
+  - **API Endpoints:**
+    - GET `/api/roles` - List all roles
+    - GET `/api/roles/:id` - Get role with permissions
+    - POST `/api/roles` - Create custom role (Admin only)
+    - PUT `/api/roles/:id` - Update role (Admin only)
+    - DELETE `/api/roles/:id` - Delete role (Admin only)
+    - PUT `/api/roles/:id/permissions` - Assign permissions to role
+    - POST `/api/users/:id/roles` - Assign role to user
+    - DELETE `/api/users/:id/roles/:roleId` - Remove role from user
+    - GET `/api/users/:id/roles` - Get user's roles
+  - **Effort:** 8 hours → **ACTUAL:** 4 hours
+  - **Dependencies:** TASK-079 ✅
+  - **Status:** Backend 100% complete
 
 - [ ] **TASK-081:** RBAC UI
   - **File:** `frontend/app/admin/roles/page.tsx`
   - **Acceptance:** Role editor, permission matrix, user assignment
   - **Effort:** 10 hours
-  - **Dependencies:** TASK-080
+  - **Dependencies:** TASK-080 ✅
 
 #### 3.1.2 Additional SSO Providers
 
