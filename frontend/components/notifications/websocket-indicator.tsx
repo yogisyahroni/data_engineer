@@ -1,7 +1,8 @@
 'use client';
 
 import * as React from 'react';
-import { Wifi, WifiOff } from 'lucide-react';
+import { Wifi, WifiOff, Lock } from 'lucide-react';
+import { useSession } from 'next-auth/react';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Badge } from '@/components/ui/badge';
 import { useWebSocket } from '@/hooks/use-websocket';
@@ -13,9 +14,19 @@ interface WebSocketIndicatorProps {
 }
 
 export function WebSocketIndicator({ className, showLabel = false }: WebSocketIndicatorProps) {
-    const { connected, connecting, error } = useWebSocket();
+    const { status: authStatus } = useSession();
+    const isAuthenticated = authStatus === 'authenticated';
+
+    // Only get WebSocket state if authenticated
+    const { connected, connecting, error } = useWebSocket({
+        enabled: isAuthenticated,
+    });
 
     const getStatus = () => {
+        // Show "Not Logged In" if user is not authenticated
+        if (!isAuthenticated) {
+            return { label: 'Not Logged In', color: 'bg-gray-400', icon: Lock };
+        }
         if (connected) return { label: 'Connected', color: 'bg-green-500', icon: Wifi };
         if (connecting) return { label: 'Connecting...', color: 'bg-yellow-500', icon: Wifi };
         if (error) return { label: 'Error', color: 'bg-red-500', icon: WifiOff };
@@ -59,6 +70,9 @@ export function WebSocketIndicator({ className, showLabel = false }: WebSocketIn
                     </div>
                     {error && (
                         <p className="text-xs text-muted-foreground mt-1">{error}</p>
+                    )}
+                    {!isAuthenticated && (
+                        <p className="text-xs text-muted-foreground mt-1">Please login to enable real-time updates</p>
                     )}
                 </TooltipContent>
             </Tooltip>

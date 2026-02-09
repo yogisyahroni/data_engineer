@@ -78,12 +78,6 @@ export async function POST(req: NextRequest) {
             expectedChallenge: challenge,
             expectedOrigin: origin,
             expectedRPID: rpID,
-            authenticator: {
-                credentialID: authenticator.credentialID,
-                credentialPublicKey: new Uint8Array(authenticator.credentialPublicKey),
-                counter: Number(authenticator.counter),
-                transports: authenticator.transports ? (authenticator.transports.split(',') as any[]) : undefined,
-            },
         });
 
         if (verification.verified) {

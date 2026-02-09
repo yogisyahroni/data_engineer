@@ -26,7 +26,7 @@ interface DashboardSimple {
 
 export default function AppPagesTab({ app, onUpdate }: AppPagesTabProps) {
     const { toast } = useToast();
-    const { workspace } = useWorkspace();
+    const { workspaceId } = useWorkspace();
     const [pages, setPages] = useState<AppPage[]>([]);
     const [loading, setLoading] = useState(true);
     const [dashboards, setDashboards] = useState<DashboardSimple[]>([]);
@@ -58,21 +58,21 @@ export default function AppPagesTab({ app, onUpdate }: AppPagesTabProps) {
     };
 
     const fetchDashboards = async () => {
-        if (!workspace) return;
+        if (!workspaceId) return;
         try {
-            const res = await fetch(`/api/dashboards?workspaceId=${workspace.id}`);
+            const res = await fetch(`/api/dashboards?workspaceId=${workspaceId}`);
             if (!res.ok) throw new Error("Failed");
             const json = await res.json();
             setDashboards(json.data || []);
         } catch (e) {
             console.error("Failed to load dashboards", e);
         }
-    }
+    };
 
     useEffect(() => {
         fetchPages();
         fetchDashboards();
-    }, [app.id, workspace]);
+    }, [app.id, workspaceId]);
 
     // Auto-slug
     useEffect(() => {
@@ -132,7 +132,7 @@ export default function AppPagesTab({ app, onUpdate }: AppPagesTabProps) {
 
         // TEMPORARY: Just console log
         console.warn("DELETE Page API missing");
-        toast({ title: 'Not Implemented', description: 'Page deletion coming in next update', variant: 'warning' });
+        toast({ title: 'Not Implemented', description: 'Page deletion coming in next update', variant: 'default' });
     };
 
     return (

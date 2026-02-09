@@ -8,12 +8,22 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 
-export default function PublicSharePage({ params }: { params: { token: string } }) {
+export default function PublicSharePage({ params }: { params: Promise<{ token: string }> }) {
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [password, setPassword] = useState('');
     const [isLocked, setIsLocked] = useState(false);
+    const [token, setToken] = useState<string>('');
+
+    useEffect(() => {
+        const loadParams = async () => {
+            const { token: resolvedToken } = await params;
+            setToken(resolvedToken);
+        };
+        loadParams();
+        fetchData();
+    }, [params]);
 
     const fetchData = async (pwd?: string) => {
         setLoading(true);
@@ -22,7 +32,7 @@ export default function PublicSharePage({ params }: { params: { token: string } 
             const headers: any = {};
             if (pwd) headers['x-share-password'] = pwd;
 
-            const res = await fetch(`/api/share/${params.token}`, { headers });
+            const res = await fetch(`/api/share/${token}`, { headers });
 
             if (res.status === 403) {
                 setIsLocked(true);
@@ -46,10 +56,6 @@ export default function PublicSharePage({ params }: { params: { token: string } 
             setLoading(false);
         }
     };
-
-    useEffect(() => {
-        fetchData();
-    }, [params.token]);
 
     const handleUnlock = (e: React.FormEvent) => {
         e.preventDefault();

@@ -8,7 +8,7 @@ import { Badge } from '@/components/ui/badge';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 
-export default function DataflowDetailPage({ params }: { params: { id: string } }) {
+export default function DataflowDetailPage({ params }: { params: Promise<{ id: string }> }) {
     const [dataflow, setDataflow] = useState<any>(null);
     const [isRunning, setIsRunning] = useState(false);
 
@@ -24,7 +24,8 @@ export default function DataflowDetailPage({ params }: { params: { id: string } 
     const handleRun = async () => {
         setIsRunning(true);
         try {
-            const res = await fetch(`/api/dataflows/${params.id}/run`, { method: 'POST' });
+            const { id } = await params;
+            const res = await fetch(`/api/dataflows/${id}/run`, { method: 'POST' });
             if (res.ok) toast.success('Dataflow started');
             else toast.error('Failed to start');
         } catch (e) {
@@ -39,7 +40,7 @@ export default function DataflowDetailPage({ params }: { params: { id: string } 
             <div className="flex items-center justify-between">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight">Pipeline Details</h1>
-                    <p className="text-muted-foreground">{params.id}</p>
+                    <p className="text-muted-foreground">{id}</p>
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline"><Plus className="mr-2 h-4 w-4" /> Add Step</Button>

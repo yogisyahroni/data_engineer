@@ -100,13 +100,13 @@ export function SchedulerManager({ className }: SchedulerManagerProps) {
 
     const handleUpdate = async () => {
         if (!editingJob) return;
+
+        setEditingJob(null);
         try {
-            await updateJob({ id: editingJob.id, ...formData });
-            setCreateDialogOpen(false);
-            resetForm();
+            await updateJob(editingJob.id, formData);
             toast.success('Job updated successfully');
-        } catch (error) {
-            toast.error('Failed to update job');
+        } catch (err: Error | unknown) {
+            toast.error(`Failed to update job: ${err instanceof Error ? err.message : 'Unknown error'}`);
         }
     };
 
@@ -345,7 +345,7 @@ export function SchedulerManager({ className }: SchedulerManagerProps) {
                                         </TableCell>
                                         <TableCell>
                                             <Badge variant="outline" className="capitalize">
-                                                {job.jobType.replace('_', ' ')}
+                                                {job.jobType?.replace('_', ' ') || 'N/A'}
                                             </Badge>
                                         </TableCell>
                                         <TableCell>{getStatusBadge(job)}</TableCell>

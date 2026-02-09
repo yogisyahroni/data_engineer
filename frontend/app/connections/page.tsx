@@ -93,6 +93,10 @@ export default function ConnectionsPage() {
         const styles: Record<string, { bg: string; text: string }> = {
             postgres: { bg: 'bg-blue-500/10', text: 'text-blue-500' },
             mysql: { bg: 'bg-orange-500/10', text: 'text-orange-500' },
+            sqlserver: { bg: 'bg-purple-500/10', text: 'text-purple-500' },
+            mssql: { bg: 'bg-purple-500/10', text: 'text-purple-500' },
+            oracle: { bg: 'bg-red-500/10', text: 'text-red-500' },
+            mongodb: { bg: 'bg-green-600/10', text: 'text-green-600' },
             sqlite: { bg: 'bg-green-500/10', text: 'text-green-500' },
             snowflake: { bg: 'bg-cyan-500/10', text: 'text-cyan-500' },
             bigquery: { bg: 'bg-yellow-500/10', text: 'text-yellow-500' },

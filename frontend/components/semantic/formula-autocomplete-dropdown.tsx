@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import type { AutocompleteSuggestion } from '@/lib/types/semantic';
-import { Function, Hash, Code, Type } from 'lucide-react';
+import { Code, Hash, Type, Terminal } from 'lucide-react';
 
 interface FormulaAutocompleteDropdownProps {
     suggestions: AutocompleteSuggestion[];
@@ -15,7 +15,7 @@ interface FormulaAutocompleteDropdownProps {
 }
 
 const TYPE_ICONS = {
-    function: Function,
+    function: Terminal,
     operator: Hash,
     keyword: Code,
     column: Type,

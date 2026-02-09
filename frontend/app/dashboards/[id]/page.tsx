@@ -13,6 +13,8 @@ import { useState } from 'react';
 import { useSavedQueries } from '@/hooks/use-saved-queries';
 import { useDashboardData } from '@/hooks/use-dashboard-data';
 import { toast } from 'sonner';
+import { CrossFilterProvider } from '@/lib/cross-filter-context';
+import { GlobalFilters, GlobalFilterConfig } from '@/components/dashboard/global-filters';
 
 export default function DashboardPage() {
     const params = useParams();
@@ -81,136 +83,167 @@ export default function DashboardPage() {
         }
     };
 
+    // Global filter configurations
+    const globalFilterConfigs: GlobalFilterConfig[] = [
+        {
+            id: 'date-range',
+            label: 'Date Range',
+            fieldName: 'created_at',
+            type: 'date-range',
+            operator: 'between',
+        },
+        {
+            id: 'search',
+            label: 'Search',
+            fieldName: 'name',
+            type: 'search',
+            placeholder: 'Search...',
+        },
+    ];
+
     return (
-        <div className="flex flex-col h-screen overflow-hidden bg-background">
-            {/* Header */}
-            <header className="border-b h-14 flex items-center justify-between px-6 bg-card shrink-0">
-                <div className="flex items-center gap-4">
-                    <div>
-                        <h1 className="text-lg font-semibold flex items-center gap-2">
-                            <Layout className="h-4 w-4 text-muted-foreground" />
-                            {dashboard.name}
-                        </h1>
-                        {dashboard.description && (
-                            <p className="text-xs text-muted-foreground">{dashboard.description}</p>
+        <CrossFilterProvider>
+            <div className="flex flex-col h-screen overflow-hidden bg-background">
+                {/* Header */}
+                <header className="border-b h-14 flex items-center justify-between px-6 bg-card shrink-0">
+                    <div className="flex items-center gap-4">
+                        <div>
+                            <h1 className="text-lg font-semibold flex items-center gap-2">
+                                <Layout className="h-4 w-4 text-muted-foreground" />
+                                {dashboard.name}
+                            </h1>
+                            {dashboard.description && (
+                                <p className="text-xs text-muted-foreground">{dashboard.description}</p>
+                            )}
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <Button
+                            variant={isMobileView ? "default" : "ghost"}
+                            size="icon"
+                            onClick={() => setIsMobileView(!isMobileView)}
+                            title="Toggle Mobile View"
+                            className="h-8 w-8"
+                        >
+                            <Smartphone className="h-4 w-4" />
+                        </Button>
+
+                        {isEditing ? (
+                            <>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => setIsAddCardOpen(true)}
+                                    className="gap-2"
+                                >
+                                    <Plus className="h-4 w-4" />
+                                    Add Card
+                                </Button>
+                                <Button
+                                    variant="default"
+                                    size="sm"
+                                    onClick={saveDashboard}
+                                    className="gap-2"
+                                >
+                                    <Save className="h-4 w-4" />
+                                    Save Layout
+                                </Button>
+                            </>
+                        ) : (
+                            <>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setIsEditing(true)}
+                                    className="gap-2"
+                                >
+                                    <PencilOff className="h-4 w-4" />
+                                    Edit Layout
+                                </Button>
+                                <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsScheduleOpen(true)}>
+                                    <CalendarClock className="h-4 w-4" />
+                                    Schedule
+                                </Button>
+                                <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsShareOpen(true)}>
+                                    <Share2 className="h-4 w-4" />
+                                    Share
+                                </Button>
+                            </>
                         )}
                     </div>
-                </div>
+                </header>
 
-                <div className="flex items-center gap-2">
-                    <Button
-                        variant={isMobileView ? "default" : "ghost"}
-                        size="icon"
-                        onClick={() => setIsMobileView(!isMobileView)}
-                        title="Toggle Mobile View"
-                        className="h-8 w-8"
-                    >
-                        <Smartphone className="h-4 w-4" />
-                    </Button>
+                {/* Grid Canvas */}
+                <main className="flex-1 overflow-y-auto p-6 bg-muted/10">
+                    <DashboardFilterBar
+                        filters={filters || []}
+                        filterValues={filterValues}
+                        isEditing={isEditing}
+                        onAddFilter={addFilter}
+                        onRemoveFilter={removeFilter}
+                        onFilterChange={setFilterValue}
+                    />
 
-                    {isEditing ? (
-                        <>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => setIsAddCardOpen(true)}
-                                className="gap-2"
-                            >
-                                <Plus className="h-4 w-4" />
-                                Add Card
-                            </Button>
-                            <Button
-                                variant="default"
-                                size="sm"
-                                onClick={saveDashboard}
-                                className="gap-2"
-                            >
-                                <Save className="h-4 w-4" />
-                                Save Layout
-                            </Button>
-                        </>
-                    ) : (
-                        <>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setIsEditing(true)}
-                                className="gap-2"
-                            >
-                                <PencilOff className="h-4 w-4" />
-                                Edit Layout
-                            </Button>
-                            <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsScheduleOpen(true)}>
-                                <CalendarClock className="h-4 w-4" />
-                                Schedule
-                            </Button>
-                            <Button variant="outline" size="sm" className="gap-2" onClick={() => setIsShareOpen(true)}>
-                                <Share2 className="h-4 w-4" />
-                                Share
-                            </Button>
-                        </>
-                    )}
-                </div>
-            </header>
+                    {/* Global Cross-Filters */}
+                    <GlobalFilters
+                        filterConfigs={globalFilterConfigs}
+                        showFilterCount={true}
+                        sticky={false}
+                        initialCollapsed={true}
+                        onFiltersChange={(filters) => {
+                            console.log('Global filters changed:', filters);
+                        }}
+                    />
 
-            {/* Grid Canvas */}
-            <main className="flex-1 overflow-y-auto p-6 bg-muted/10">
-                <DashboardFilterBar
-                    filters={filters || []}
-                    filterValues={filterValues}
-                    isEditing={isEditing}
-                    onAddFilter={addFilter}
-                    onRemoveFilter={removeFilter}
-                    onFilterChange={setFilterValue}
+                    <DashboardGrid
+                        cards={dashboard.cards}
+                        isEditing={isEditing}
+                        onLayoutChange={updateLayout}
+                        onRemoveCard={removeCard}
+                        queriesData={queriesData}
+                        onChartClick={handleChartClick}
+                        isMobileView={isMobileView}
+                    />
+                </main>
+
+                {/* Add Card Dialog */}
+                <AddCardDialog
+                    open={isAddCardOpen}
+                    onOpenChange={setIsAddCardOpen}
+                    onAddQuery={(queryId, name) => {
+                        // Find query config to populate default card config
+                        const query = queries.find(q => q.id === queryId);
+                        addCard({
+                            type: 'visualization',
+                            title: name,
+                            queryId: queryId,
+                            visualizationConfig: query?.visualizationConfig,
+                        });
+                    }}
+                    onAddText={(title, content) => {
+                        addCard({
+                            type: 'text',
+                            title: title,
+                            textContent: content
+                        });
+                    }}
                 />
 
-                <DashboardGrid
-                    cards={dashboard.cards}
-                    isEditing={isEditing}
-                    onLayoutChange={updateLayout}
-                    onRemoveCard={removeCard}
-                    queriesData={queriesData}
-                    onChartClick={handleChartClick}
-                    isMobileView={isMobileView}
+                <ShareDialog
+                    open={isShareOpen}
+                    onOpenChange={setIsShareOpen}
+                    dashboardId={dashboardId}
+                    isPublic={dashboard.isPublic}
+                    onUpdateVisibility={togglePublic}
                 />
-            </main>
 
-            {/* Add Card Dialog */}
-            <AddCardDialog
-                open={isAddCardOpen}
-                onOpenChange={setIsAddCardOpen}
-                onAddQuery={(queryId, name) => {
-                    // Find query config to populate default card config
-                    const query = queries.find(q => q.id === queryId);
-                    addCard({
-                        type: 'visualization',
-                        title: name,
-                        queryId: queryId,
-                        visualizationConfig: query?.visualizationConfig,
-                    });
-                }}
-                onAddText={(title, content) => {
-                    addCard({
-                        type: 'text',
-                        title: title,
-                        textContent: content
-                    });
-                }}
-            />
-
-            <ShareDialog
-                open={isShareOpen}
-                onOpenChange={setIsShareOpen}
-                dashboardId={dashboardId}
-                isPublic={dashboard.isPublic}
-                onUpdateVisibility={togglePublic}
-            />
-
-            <ReportScheduleDialog
-                open={isScheduleOpen}
-                onOpenChange={setIsScheduleOpen}
-                dashboardId={dashboardId}
-            />
-        </div>
+                <ReportScheduleDialog
+                    open={isScheduleOpen}
+                    onOpenChange={setIsScheduleOpen}
+                    dashboardId={dashboardId}
+                />
+            </div>
+        </CrossFilterProvider>
     );
 }

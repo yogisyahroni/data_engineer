@@ -28,7 +28,7 @@ interface DataApp {
 
 export default function AppsPage() {
     const router = useRouter();
-    const { workspace } = useWorkspace();
+    const { workspaceId } = useWorkspace();
     const { toast } = useToast();
     const [apps, setApps] = useState<DataApp[]>([]);
     const [loading, setLoading] = useState(true);
@@ -52,14 +52,14 @@ export default function AppsPage() {
     }, [newName, createOpen, newSlug]);
 
     useEffect(() => {
-        if (workspace) {
+        if (workspaceId) {
             fetchApps();
         }
-    }, [workspace]);
+    }, [workspaceId]);
 
     const fetchApps = async () => {
         try {
-            const res = await fetch(`/api/apps?workspaceId=${workspace?.id}`);
+            const res = await fetch(`/api/apps?workspaceId=${workspaceId}`);
             if (!res.ok) throw new Error('Failed to fetch apps');
             const data = await res.json();
             setApps(data);
@@ -77,7 +77,7 @@ export default function AppsPage() {
 
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!workspace) return;
+        if (!workspaceId) return;
         setCreating(true);
 
         try {
@@ -87,7 +87,7 @@ export default function AppsPage() {
                 body: JSON.stringify({
                     name: newName,
                     slug: newSlug,
-                    workspaceId: workspace.id,
+                    workspaceId: workspaceId,
                 }),
             });
 
@@ -115,7 +115,7 @@ export default function AppsPage() {
         }
     };
 
-    if (!workspace) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin" /></div>;
+    if (!workspaceId) return <div className="p-8 flex justify-center"><Loader2 className="animate-spin" /></div>;
 
     return (
         <div className="container mx-auto py-8">

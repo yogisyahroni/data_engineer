@@ -4,25 +4,25 @@ import (
 	"insight-engine-backend/database"
 	"insight-engine-backend/handlers"
 	"insight-engine-backend/middleware"
-	"insight-engine-backend/middleware/ratelimit"
 	"insight-engine-backend/services"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/logger"
 	"github.com/gofiber/websocket/v2"
 	"github.com/joho/godotenv"
-	"golang.org/x/time/rate"
 )
 
 func main() {
+	// 0. Initialize Structured Logger (MUST BE FIRST)
+	services.InitLogger("insight-engine-backend")
+
 	// 1. Load Environment Variables
 	if err := godotenv.Load(); err != nil {
-		log.Println("⚠️ .env file not found, using system env")
+		services.LogWarn("env_load", ".env file not found, using system environment variables", nil)
 	}
 
 	// 2. Connect to Database
@@ -31,76 +31,82 @@ func main() {
 	// 2.5. Initialize Encryption Service (Required for AI providers)
 	encryptionService, err := services.NewEncryptionService()
 	if err != nil {
-		log.Fatalf("❌ Failed to initialize encryption service: %v\nPlease set ENCRYPTION_KEY environment variable (32 bytes).\nGenerate with: openssl rand -base64 32", err)
+		services.LogFatal("encryption_init", "Failed to initialize encryption service. Set ENCRYPTION_KEY environment variable (32 bytes). Generate with: openssl rand -base64 32", map[string]interface{}{"error": err})
 	}
-	log.Println("✅ Encryption service initialized")
+	services.LogInfo("encryption_init", "Encryption service initialized successfully", nil)
 
 	// 2.6. Initialize AI Handlers
 	handlers.InitAIHandlers(encryptionService)
-	log.Println("✅ AI handlers initialized")
+	services.LogInfo("ai_handlers_init", "AI handlers initialized successfully", nil)
 
 	// 2.7. Initialize Semantic Handlers
 	aiService := services.NewAIService(encryptionService)
 	handlers.InitSemanticHandlers(aiService)
-	log.Println("✅ Semantic handlers initialized")
+	services.LogInfo("semantic_handlers_init", "Semantic handlers initialized successfully", nil)
 
 	// 2.8. Initialize Semantic Layer Service and Handler
 	semanticLayerService := services.NewSemanticLayerService(database.DB)
 	semanticLayerHandler := handlers.NewSemanticLayerHandler(semanticLayerService)
-	log.Println("✅ Semantic layer handler initialized")
+	services.LogInfo("semantic_layer_init", "Semantic layer handler initialized successfully", nil)
 
 	// 2.9. Initialize Modeling Service and Handler
 	modelingService := services.NewModelingService(database.DB)
 	modelingHandler := handlers.NewModelingHandler(modelingService)
-	log.Println("✅ Modeling handler initialized")
+	services.LogInfo("modeling_init", "Modeling handler initialized successfully", nil)
 
 	// 2.9. Initialize Rate Limiter and Usage Tracker (Database-driven)
 	rateLimiterService := services.NewRateLimiter(database.DB)
 	usageTrackerService := services.NewUsageTracker(database.DB)
-	log.Println("✅ Rate limiter and usage tracker initialized")
+	services.LogInfo("rate_limiter_init", "Rate limiter and usage tracker initialized successfully", nil)
 
 	// 2.10. Initialize Cron Service for scheduled tasks
 	cronService := services.NewCronService(database.DB)
 	cronService.Start()
-	log.Println("✅ Cron jobs started (budget reset, view refresh)")
+	services.LogInfo("cron_init", "Cron service started (budget reset, view refresh)", nil)
 
 	// 2.11. Initialize WebSocket Hub for real-time updates
 	wsHub := services.NewWebSocketHub()
 	go wsHub.Run()
-	log.Println("✅ WebSocket hub started")
+	services.LogInfo("websocket_init", "WebSocket hub started for real-time updates", nil)
 
 	// 2.12. Initialize Notification Service
 	notificationService := services.NewNotificationService(database.DB, wsHub)
 	notificationHandler := handlers.NewNotificationHandler(notificationService)
-	log.Println("✅ Notification service initialized")
+	services.LogInfo("notification_init", "Notification service initialized successfully", nil)
 
 	// 2.13. Initialize Activity Service
 	activityService := services.NewActivityService(database.DB, wsHub)
 	activityHandler := handlers.NewActivityHandler(activityService)
-	log.Println("✅ Activity service initialized")
+	services.LogInfo("activity_init", "Activity service initialized successfully", nil)
 
 	// 2.14. Initialize Scheduler Service (UI-configurable)
 	schedulerService := services.NewSchedulerService(database.DB)
 	schedulerService.Start()
 	schedulerHandler := handlers.NewSchedulerHandler(schedulerService)
-	log.Println("✅ Scheduler service initialized")
+	services.LogInfo("scheduler_init", "Scheduler service initialized successfully", nil)
 
 	// 2.15. Initialize WebSocket Handler
 	wsHandler := handlers.NewWebSocketHandler(wsHub)
-	log.Println("✅ WebSocket handler initialized")
+	services.LogInfo("ws_handler_init", "WebSocket handler initialized successfully", nil)
+
+	// 2.16. Initialize Audit Service (Comprehensive logging for compliance)
+	auditService := services.NewAuditService(database.DB)
+	auditHandler := handlers.NewAuditHandler(auditService)
+	services.LogInfo("audit_init", "Audit service initialized (async logging with 5 workers)", nil)
 
 	// 3. Initialize Job Queue (5 workers)
 	services.InitJobQueue(5)
-	log.Println("✅ Job queue initialized with 5 workers")
+	services.LogInfo("job_queue_init", "Job queue initialized with 5 workers", nil)
 
 	// Setup graceful shutdown
 	go func() {
 		sigChan := make(chan os.Signal, 1)
 		signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
 		<-sigChan
-		log.Println("🛑 Shutting down gracefully...")
+		services.LogInfo("graceful_shutdown", "Shutting down gracefully", nil)
 		cronService.Stop()
 		schedulerService.Stop()
+		auditService.Stop() // Flush pending audit logs
 		services.ShutdownJobQueue()
 		os.Exit(0)
 	}()
@@ -112,14 +118,102 @@ func main() {
 
 	// 4. Middleware
 	app.Use(logger.New())
-	app.Use(cors.New(cors.Config{
-		AllowOrigins:     "http://localhost:3000", // Allow Next.js Frontend
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
-		AllowCredentials: true, // Allow cookies
-	}))
 
-	// 5. Routes
-	api := app.Group("/api")
+	// Hardened CORS Middleware (whitelist-based, environment-driven)
+	corsConfig := middleware.LoadCORSConfigFromEnv()
+	app.Use(middleware.HardenedCORS(corsConfig))
+	services.LogInfo("cors_init", "Hardened CORS initialized", map[string]interface{}{"allowed_origins": corsConfig.AllowedOrigins})
+
+	// 5. Initialize Rate Limiting BEFORE Routes
+	// Comprehensive Rate Limiting Middleware
+	// Uses database-driven configuration with multi-layer protection:
+	// - IP-based limiting (DDoS protection)
+	// - Endpoint-specific limiting (auth brute-force protection)
+	// - Per-user limiting (API usage quotas)
+	comprehensiveRateLimit := middleware.ComprehensiveRateLimit(middleware.ComprehensiveRateLimitConfig{
+		RateLimiterService: rateLimiterService,
+		SkipPaths: map[string]bool{
+			"/api/health":       true, // Health checks should not be rate limited
+			"/api/health/ready": true,
+			"/api/health/live":  true,
+			"/api/metrics":      true, // Metrics endpoint
+		},
+	})
+	services.LogInfo("rate_limiter_init", "Comprehensive rate limiter initialized", map[string]interface{}{"features": []string{"IP-based", "endpoint-specific", "per-user"}})
+
+	// 6. Routes with Rate Limiting
+	api := app.Group("/api", comprehensiveRateLimit)
+
+	// Authentication
+	// Initialize EmailService for sending verification emails
+	emailService := services.NewEmailService()
+	services.LogInfo("email_service_init", "Email service initialized", map[string]interface{}{"provider": emailService.GetProvider()})
+
+	// Initialize AuthService with EmailService for dependency injection
+	authService := services.NewAuthService(database.DB, emailService)
+	authHandler := handlers.NewAuthHandler(authService)
+	api.Post("/auth/register", authHandler.Register)
+	api.Post("/auth/login", authHandler.Login)
+	api.Get("/auth/verify-email", authHandler.VerifyEmail)
+	api.Post("/auth/resend-verification", authHandler.ResendVerification)
+	api.Post("/auth/forgot-password", authHandler.ForgotPassword)
+	api.Post("/auth/reset-password", authHandler.ResetPassword)
+	api.Get("/auth/validate-reset-token", authHandler.ValidateResetToken)
+
+	// Protected routes (require authentication)
+	api.Post("/auth/change-password", middleware.AuthMiddleware, authHandler.ChangePassword)
+
+	// ---------------------------------------------------------
+	// Initialize Services & Handlers (Dependency Injection)
+	// ---------------------------------------------------------
+
+	// 1. Core Services
+	queryExecutor := services.NewQueryExecutor()
+	schemaDiscovery := services.NewSchemaDiscovery(queryExecutor)
+	queryValidator := services.NewQueryValidator([]string{})
+
+	// 2. Redis Cache
+	redisConfig := services.RedisCacheConfig{
+		Host:       os.Getenv("REDIS_HOST"),
+		Password:   os.Getenv("REDIS_PASSWORD"),
+		DB:         0,
+		MaxRetries: 3,
+		PoolSize:   10,
+	}
+	if redisConfig.Host == "" {
+		redisConfig.Host = "localhost:6379"
+	}
+	redisCache, err := services.NewRedisCache(redisConfig)
+	if err != nil {
+		services.LogWarn("redis_init_failed", "Redis cache initialization failed, query caching disabled", map[string]interface{}{"error": err})
+		redisCache = nil
+	}
+	var queryCache *services.QueryCache
+	if redisCache != nil {
+		queryCache = services.NewQueryCache(redisCache, 5*time.Minute)
+		services.LogInfo("query_builder_init", "Visual Query Builder initialized with Redis caching", nil)
+	} else {
+		queryCache = nil
+		services.LogInfo("query_builder_init", "Visual Query Builder initialized", map[string]interface{}{"caching": "disabled"})
+	}
+
+	// 3. Dependent Services
+	rlsService := services.NewRLSService(database.DB)
+	engineService := services.NewEngineService(queryExecutor)
+	queryBuilder := services.NewQueryBuilder(queryValidator, schemaDiscovery, queryCache, rlsService)
+	geoJSONService := services.NewGeoJSONService(database.DB)
+
+	// 4. Initialize Handlers
+	visualQueryHandler := handlers.NewVisualQueryHandler(database.DB, queryBuilder, queryExecutor, schemaDiscovery, queryCache)
+	connectionHandler := handlers.NewConnectionHandler(queryExecutor, schemaDiscovery)
+	queryHandler := handlers.NewQueryHandler(queryExecutor)
+	queryAnalyzerHandler := handlers.NewQueryAnalyzerHandler(database.DB, queryExecutor)
+	materializedViewService := services.NewMaterializedViewService(database.DB, queryExecutor)
+	materializedViewHandler := handlers.NewMaterializedViewHandler(database.DB, materializedViewService)
+	engineHandler := handlers.NewEngineHandler(engineService)
+	geoJSONHandler := handlers.NewGeoJSONHandler(geoJSONService)
+
+	services.LogInfo("services_init", "Core services initialized", map[string]interface{}{"services": []string{"RLS", "Engine", "Query", "MaterializedViews", "GeoJSON"}})
 
 	// Health Check Endpoints (Public)
 	// Basic health check
@@ -170,28 +264,48 @@ func main() {
 	api.Post("/alerts", middleware.AuthMiddleware, handlers.CreateAlert) // Protected
 
 	// Query Routes (Protected)
-	api.Get("/queries", middleware.AuthMiddleware, handlers.GetQueries)
-	api.Post("/queries", middleware.AuthMiddleware, handlers.CreateQuery)
-	api.Get("/queries/:id", middleware.AuthMiddleware, handlers.GetQuery)
-	api.Put("/queries/:id", middleware.AuthMiddleware, handlers.UpdateQuery)
-	api.Delete("/queries/:id", middleware.AuthMiddleware, handlers.DeleteQuery)
-	api.Post("/queries/:id/run", middleware.AuthMiddleware, handlers.RunQuery)
-	api.Post("/queries/execute", middleware.AuthMiddleware, handlers.ExecuteAdHocQuery)
+	// Query Routes (Protected)
+	api.Get("/queries", middleware.AuthMiddleware, queryHandler.GetQueries)
+	api.Post("/queries", middleware.AuthMiddleware, queryHandler.CreateQuery)
+	api.Get("/queries/:id", middleware.AuthMiddleware, queryHandler.GetQuery)
+	api.Put("/queries/:id", middleware.AuthMiddleware, queryHandler.UpdateQuery)
+	api.Delete("/queries/:id", middleware.AuthMiddleware, queryHandler.DeleteQuery)
+	api.Post("/queries/:id/run", middleware.AuthMiddleware, queryHandler.RunQuery)
+	api.Post("/queries/execute", middleware.AuthMiddleware, queryHandler.ExecuteAdHocQuery)
+
+	// Query Analyzer Routes (Protected) - Phase 2.5 Query Optimization (TASK-075)
+	api.Post("/query/analyze", middleware.AuthMiddleware, queryAnalyzerHandler.AnalyzeQueryPlan)
+	api.Get("/query/complexity", middleware.AuthMiddleware, queryAnalyzerHandler.GetQueryComplexity)
+	api.Post("/query/optimize", middleware.AuthMiddleware, queryAnalyzerHandler.GetOptimizationSuggestions)
+	services.LogInfo("routes_registered", "Query analyzer routes registered", map[string]interface{}{"endpoints": []string{"/api/query/analyze", "/api/query/complexity", "/api/query/optimize"}})
+
+	// Materialized View Routes (Protected) - Phase 2.5 Caching Enhancements (TASK-077)
+	api.Post("/materialized-views", middleware.AuthMiddleware, materializedViewHandler.CreateMaterializedView)
+	api.Get("/materialized-views", middleware.AuthMiddleware, materializedViewHandler.ListMaterializedViews)
+	api.Get("/materialized-views/:id", middleware.AuthMiddleware, materializedViewHandler.GetMaterializedView)
+	api.Delete("/materialized-views/:id", middleware.AuthMiddleware, materializedViewHandler.DropMaterializedView)
+	api.Post("/materialized-views/:id/refresh", middleware.AuthMiddleware, materializedViewHandler.RefreshMaterializedView)
+	api.Put("/materialized-views/:id/schedule", middleware.AuthMiddleware, materializedViewHandler.UpdateSchedule)
+	api.Get("/materialized-views/:id/status", middleware.AuthMiddleware, materializedViewHandler.GetStatus)
+	api.Get("/materialized-views/:id/history", middleware.AuthMiddleware, materializedViewHandler.GetRefreshHistory)
+	services.LogInfo("routes_registered", "Materialized view routes registered", map[string]interface{}{"endpoint": "/api/materialized-views"})
 
 	// Connection Routes (Protected)
-	api.Get("/connections", middleware.AuthMiddleware, handlers.GetConnections)
-	api.Post("/connections", middleware.AuthMiddleware, handlers.CreateConnection)
-	api.Get("/connections/:id", middleware.AuthMiddleware, handlers.GetConnection)
-	api.Put("/connections/:id", middleware.AuthMiddleware, handlers.UpdateConnection)
-	api.Delete("/connections/:id", middleware.AuthMiddleware, handlers.DeleteConnection)
-	api.Post("/connections/:id/test", middleware.AuthMiddleware, handlers.TestConnection)
-	api.Get("/connections/:id/schema", middleware.AuthMiddleware, handlers.GetConnectionSchema)
+	// Connection Routes (Protected)
+	api.Get("/connections", middleware.AuthMiddleware, connectionHandler.GetConnections)
+	api.Post("/connections", middleware.AuthMiddleware, connectionHandler.CreateConnection)
+	api.Get("/connections/:id", middleware.AuthMiddleware, connectionHandler.GetConnection)
+	api.Put("/connections/:id", middleware.AuthMiddleware, connectionHandler.UpdateConnection)
+	api.Delete("/connections/:id", middleware.AuthMiddleware, connectionHandler.DeleteConnection)
+	api.Post("/connections/:id/test", middleware.AuthMiddleware, connectionHandler.TestConnection)
+	api.Get("/connections/:id/schema", middleware.AuthMiddleware, connectionHandler.GetConnectionSchema)
 
 	// Engine Routes (Protected) - Advanced Analytics
-	api.Post("/engine/aggregate", middleware.AuthMiddleware, handlers.Aggregate)
-	api.Post("/engine/forecast", middleware.AuthMiddleware, handlers.Forecast)
-	api.Post("/engine/anomaly", middleware.AuthMiddleware, handlers.DetectAnomalies)
-	api.Post("/engine/clustering", middleware.AuthMiddleware, handlers.PerformClustering)
+	// Engine Routes (Protected) - Advanced Analytics
+	api.Post("/engine/aggregate", middleware.AuthMiddleware, engineHandler.Aggregate)
+	api.Post("/engine/forecast", middleware.AuthMiddleware, engineHandler.Forecast)
+	api.Post("/engine/anomaly", middleware.AuthMiddleware, engineHandler.DetectAnomalies)
+	api.Post("/engine/clustering", middleware.AuthMiddleware, engineHandler.PerformClustering)
 
 	// Dashboard Routes (Protected)
 	api.Get("/dashboards", middleware.AuthMiddleware, handlers.GetDashboards)
@@ -251,6 +365,18 @@ func main() {
 	api.Put("/apps/:id", middleware.AuthMiddleware, handlers.UpdateApp)
 	api.Delete("/apps/:id", middleware.AuthMiddleware, handlers.DeleteApp)
 
+	// Notification Routes (Protected) - Real-time notifications
+	api.Get("/notifications", middleware.AuthMiddleware, notificationHandler.GetNotifications)
+	api.Get("/notifications/unread", middleware.AuthMiddleware, notificationHandler.GetUnreadNotifications)
+	api.Get("/notifications/unread-count", middleware.AuthMiddleware, notificationHandler.GetUnreadCount)
+	api.Put("/notifications/:id/read", middleware.AuthMiddleware, notificationHandler.MarkAsRead)
+	api.Put("/notifications/read-all", middleware.AuthMiddleware, notificationHandler.MarkAllAsRead)
+	api.Delete("/notifications/:id", middleware.AuthMiddleware, notificationHandler.DeleteNotification)
+	api.Delete("/notifications/read", middleware.AuthMiddleware, notificationHandler.DeleteReadNotifications)
+	// Admin-only notification routes (requires admin role)
+	api.Post("/notifications", middleware.AuthMiddleware, middleware.AdminMiddleware, notificationHandler.CreateNotification)
+	api.Post("/notifications/broadcast", middleware.AuthMiddleware, middleware.AdminMiddleware, notificationHandler.BroadcastSystemNotification)
+
 	// Canvas Routes (Protected) - Batch 3
 	api.Get("/canvases", middleware.AuthMiddleware, handlers.GetCanvases)
 	api.Post("/canvases", middleware.AuthMiddleware, handlers.CreateCanvas)
@@ -276,6 +402,13 @@ func main() {
 	api.Post("/workspace-members", middleware.AuthMiddleware, handlers.InviteMember)
 	api.Put("/workspace-members/:id", middleware.AuthMiddleware, handlers.UpdateMemberRole)
 	api.Delete("/workspace-members/:id", middleware.AuthMiddleware, handlers.RemoveMember)
+
+	// Audit Log Routes (Admin Only) - TASK-015
+	api.Get("/admin/audit-logs", middleware.AuthMiddleware, auditHandler.GetAuditLogs)
+	api.Get("/admin/audit-logs/recent", middleware.AuthMiddleware, auditHandler.GetRecentActivity)
+	api.Get("/admin/audit-logs/summary", middleware.AuthMiddleware, auditHandler.GetAuditSummary)
+	api.Get("/admin/audit-logs/user/:id", middleware.AuthMiddleware, auditHandler.GetUserActivity)
+	api.Get("/admin/audit-logs/export", middleware.AuthMiddleware, auditHandler.ExportAuditLogs)
 
 	// AI Provider Routes (Protected) - Batch 4
 	api.Get("/ai-providers", middleware.AuthMiddleware, handlers.GetAIProviders)
@@ -311,31 +444,15 @@ func main() {
 	api.Get("/ai/alerts", middleware.AuthMiddleware, aiUsageHandler.GetAlerts)
 	api.Post("/ai/alerts/:id/acknowledge", middleware.AuthMiddleware, aiUsageHandler.AcknowledgeAlert)
 
-	// 2.8. Initialize Rate Limiter
-	limiter := ratelimit.NewMemoryRateLimiter()
-	rateLimitMiddleware := middleware.RateLimitMiddleware(middleware.RateLimitConfig{
-		Limiter:   limiter,
-		UserLimit: rate.Limit(1.0), // 60 RPM
-		UserBurst: 5,
-	})
-	log.Println("✅ Rate limiter initialized")
-
-	// ---------------------------------------------------------
-	// 3. API Routes Setup
-	// ---------------------------------------------------------
-
-	api = app.Group("/api/v1")
-
-	// ... existing routes ...
-
-	// Semantic Layer Routes (Protected & Rate Limited) - Batch 4
-	api.Post("/semantic/explain", middleware.AuthMiddleware, rateLimitMiddleware, handlers.SemanticExplainData)
-	api.Post("/semantic/generate-query", middleware.AuthMiddleware, rateLimitMiddleware, handlers.SemanticGenerateQuery)
-	api.Post("/semantic/generate-formula", middleware.AuthMiddleware, rateLimitMiddleware, handlers.SemanticGenerateFormula)
-	api.Post("/semantic/chat", middleware.AuthMiddleware, rateLimitMiddleware, handlers.SemanticChat)
+	// Semantic Layer Routes (Protected) - Batch 4
+	// Rate limiting is applied globally via the api group middleware
+	api.Post("/semantic/explain", middleware.AuthMiddleware, handlers.SemanticExplainData)
+	api.Post("/semantic/generate-query", middleware.AuthMiddleware, handlers.SemanticGenerateQuery)
+	api.Post("/semantic/generate-formula", middleware.AuthMiddleware, handlers.SemanticGenerateFormula)
+	api.Post("/semantic/chat", middleware.AuthMiddleware, handlers.SemanticChat)
 	// Add new Stream endpoint
-	api.Post("/semantic/chat/stream", middleware.AuthMiddleware, rateLimitMiddleware, handlers.SemanticChatStream)
-	// Cost estimation endpoint (no rate limit - it's just calculation)
+	api.Post("/semantic/chat/stream", middleware.AuthMiddleware, handlers.SemanticChatStream)
+	// Cost estimation endpoint
 	api.Post("/semantic/estimate-cost", middleware.AuthMiddleware, handlers.SemanticEstimateCost)
 	// Query optimization endpoint (no rate limit - it's just analysis)
 	api.Post("/semantic/analyze-query", middleware.AuthMiddleware, handlers.SemanticAnalyzeQuery)
@@ -368,33 +485,54 @@ func main() {
 	// WebSocket connection (requires auth)
 	app.Get("/api/v1/ws", middleware.AuthMiddleware, websocket.New(wsHandler.HandleConnection))
 
-	// Notification routes
-	api.Get("/notifications", middleware.AuthMiddleware, notificationHandler.GetNotifications)
-	api.Get("/notifications/unread", middleware.AuthMiddleware, notificationHandler.GetUnreadNotifications)
-	api.Get("/notifications/unread-count", middleware.AuthMiddleware, notificationHandler.GetUnreadCount)
-	api.Put("/notifications/:id/read", middleware.AuthMiddleware, notificationHandler.MarkAsRead)
-	api.Put("/notifications/read-all", middleware.AuthMiddleware, notificationHandler.MarkAllAsRead)
-	api.Delete("/notifications/:id", middleware.AuthMiddleware, notificationHandler.DeleteNotification)
-	api.Delete("/notifications/read", middleware.AuthMiddleware, notificationHandler.DeleteReadNotifications)
-
-	// Admin-only notification routes
-	api.Post("/notifications", middleware.AuthMiddleware, notificationHandler.CreateNotification)                    // TODO: Add admin middleware
-	api.Post("/notifications/broadcast", middleware.AuthMiddleware, notificationHandler.BroadcastSystemNotification) // TODO: Add admin middleware
-
 	// Activity feed routes
 	api.Get("/activity", middleware.AuthMiddleware, activityHandler.GetUserActivity)
 	api.Get("/activity/workspace/:id", middleware.AuthMiddleware, activityHandler.GetWorkspaceActivity)
-	api.Get("/activity/recent", middleware.AuthMiddleware, activityHandler.GetRecentActivity) // TODO: Add admin middleware
+	// Admin-only activity route
+	api.Get("/activity/recent", middleware.AuthMiddleware, middleware.AdminMiddleware, activityHandler.GetRecentActivity)
 
 	// Scheduler routes
 	api.Get("/scheduler/jobs", middleware.AuthMiddleware, schedulerHandler.ListJobs)
 	api.Get("/scheduler/jobs/:id", middleware.AuthMiddleware, schedulerHandler.GetJob)
-	api.Post("/scheduler/jobs", middleware.AuthMiddleware, schedulerHandler.CreateJob)       // TODO: Add admin middleware
-	api.Put("/scheduler/jobs/:id", middleware.AuthMiddleware, schedulerHandler.UpdateJob)    // TODO: Add admin middleware
-	api.Delete("/scheduler/jobs/:id", middleware.AuthMiddleware, schedulerHandler.DeleteJob) // TODO: Add admin middleware
+	// Admin-only scheduler routes
+	api.Post("/scheduler/jobs", middleware.AuthMiddleware, middleware.AdminMiddleware, schedulerHandler.CreateJob)
+	api.Put("/scheduler/jobs/:id", middleware.AuthMiddleware, middleware.AdminMiddleware, schedulerHandler.UpdateJob)
+	api.Delete("/scheduler/jobs/:id", middleware.AuthMiddleware, middleware.AdminMiddleware, schedulerHandler.DeleteJob)
 	api.Post("/scheduler/jobs/:id/pause", middleware.AuthMiddleware, schedulerHandler.PauseJob)
 	api.Post("/scheduler/jobs/:id/resume", middleware.AuthMiddleware, schedulerHandler.ResumeJob)
 	api.Post("/scheduler/jobs/:id/trigger", middleware.AuthMiddleware, schedulerHandler.TriggerJob)
+
+	// 2.16. Visual Query Builder Services (Moved to top)
+
+	// Visual Query Builder Routes (Protected) - Phase 1.1
+	api.Get("/visual-queries", middleware.AuthMiddleware, visualQueryHandler.GetVisualQueries)
+	api.Post("/visual-queries", middleware.AuthMiddleware, visualQueryHandler.CreateVisualQuery)
+	api.Get("/visual-queries/:id", middleware.AuthMiddleware, visualQueryHandler.GetVisualQuery)
+	api.Put("/visual-queries/:id", middleware.AuthMiddleware, visualQueryHandler.UpdateVisualQuery)
+	api.Delete("/visual-queries/:id", middleware.AuthMiddleware, visualQueryHandler.DeleteVisualQuery)
+	api.Post("/visual-queries/generate-sql", middleware.AuthMiddleware, visualQueryHandler.GenerateSQL)
+	api.Post("/visual-queries/:id/preview", middleware.AuthMiddleware, visualQueryHandler.PreviewVisualQuery)
+	api.Get("/visual-queries/cache/stats", middleware.AuthMiddleware, visualQueryHandler.GetCacheStats)
+	api.Post("/visual-queries/join-suggestions", middleware.AuthMiddleware, visualQueryHandler.GetJoinSuggestions)
+
+	// RLS Policy Routes (Protected) - Phase 1.5 Row-Level Security
+	rlsHandler := handlers.NewRLSHandler(rlsService)
+	api.Get("/rls/policies", middleware.AuthMiddleware, rlsHandler.ListPolicies)
+	api.Post("/rls/policies", middleware.AuthMiddleware, rlsHandler.CreatePolicy)
+	api.Get("/rls/policies/:id", middleware.AuthMiddleware, rlsHandler.GetPolicy)
+	api.Put("/rls/policies/:id", middleware.AuthMiddleware, rlsHandler.UpdatePolicy)
+	api.Delete("/rls/policies/:id", middleware.AuthMiddleware, rlsHandler.DeletePolicy)
+	api.Post("/rls/policies/:id/test", middleware.AuthMiddleware, rlsHandler.TestPolicy)
+	services.LogInfo("routes_registered", "RLS policy routes registered", map[string]interface{}{"endpoint": "/api/rls/policies", "operations": "CRUD + Test"})
+
+	// GeoJSON Routes (Protected) - Phase 2.1 Map Visualizations (TASK-036 to TASK-039)
+	api.Post("/geojson", middleware.AuthMiddleware, geoJSONHandler.UploadGeoJSON)
+	api.Get("/geojson", middleware.AuthMiddleware, geoJSONHandler.ListGeoJSON)
+	api.Get("/geojson/:id", middleware.AuthMiddleware, geoJSONHandler.GetGeoJSON)
+	api.Get("/geojson/:id/data", middleware.AuthMiddleware, geoJSONHandler.GetGeoJSONData)
+	api.Put("/geojson/:id", middleware.AuthMiddleware, geoJSONHandler.UpdateGeoJSON)
+	api.Delete("/geojson/:id", middleware.AuthMiddleware, geoJSONHandler.DeleteGeoJSON)
+	services.LogInfo("routes_registered", "GeoJSON routes registered", map[string]interface{}{"endpoint": "/api/geojson", "operations": "Upload, List, Get, Update, Delete"})
 
 	// WebSocket stats (for monitoring)
 	api.Get("/ws/stats", middleware.AuthMiddleware, wsHandler.GetStats)
@@ -405,6 +543,8 @@ func main() {
 		port = "8080"
 	}
 
-	log.Printf("🚀 Server running on port %s", port)
-	log.Fatal(app.Listen(":" + port))
+	services.LogInfo("server_start", "Server running", map[string]interface{}{"port": port})
+	if err := app.Listen(":" + port); err != nil {
+		services.LogFatal("server_start_failed", "Failed to start server", map[string]interface{}{"port": port, "error": err})
+	}
 }

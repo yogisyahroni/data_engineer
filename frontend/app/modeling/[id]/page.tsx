@@ -21,22 +21,27 @@ import {
 import { CreateCalculatedFieldDialog } from '@/components/semantic/create-calculated-field-dialog';
 
 interface ModelEditorPageProps {
-    params: {
+    params: Promise<{
         id: string;
-    }
+    }>
 }
 
 export default function ModelEditorPage({ params }: ModelEditorPageProps) {
-    const modelId = params.id;
     const router = useRouter();
     const [model, setModel] = useState<any>(null);
     const [metrics, setMetrics] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [showCreateDialog, setShowCreateDialog] = useState(false);
+    const [modelId, setModelId] = useState<string>('');
 
     useEffect(() => {
+        const loadParams = async () => {
+            const { id } = await params;
+            setModelId(id);
+        };
+        loadParams();
         loadModelData();
-    }, [modelId]);
+    }, [params]);
 
     const loadModelData = async () => {
         setLoading(true);

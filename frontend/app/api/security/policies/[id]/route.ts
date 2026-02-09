@@ -4,10 +4,10 @@ import { db as prisma } from '@/lib/db';
 
 export async function DELETE(
     req: NextRequest,
-    { params }: { params: { id: string } }
+    { params }: { params: Promise<{ id: string }> }
 ) {
     try {
-        const id = params.id;
+        const { id } = await params;
         if (!id) return new NextResponse('ID required', { status: 400 });
 
         await prisma.rLSPolicy.delete({
@@ -20,3 +20,4 @@ export async function DELETE(
         return new NextResponse('Internal Error', { status: 500 });
     }
 }
+

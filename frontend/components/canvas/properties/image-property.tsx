@@ -25,7 +25,7 @@ export function ImageProperty({ widget, onUpdate }: PropertyProps) {
                 <Input
                     value={url}
                     onChange={(e) => handleConfigChange('url', e.target.value)}
-                    placeholder="https://example.com/image.png"
+                    placeholder="Enter image URL..."
                 />
             </div>
 

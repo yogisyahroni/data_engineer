@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -20,7 +20,7 @@ const SAMPLE_PAGES: Page[] = [
     title: 'Sales Overview',
     subtitle: 'Q1 2024 Performance Summary',
     narrative:
-      'This quarter showed strong growth across all regions. Total sales increased by 23% compared to Q4 2023. Key drivers include new product launches and expanded market penetration in the Asia-Pacific region.',
+      'This quarter showed strong growth across all regions. Total sales increased by 23% compared to Q4 2023. Key drivers include new product launches and expanded market penetration in Asia-Pacific region.',
     cards: [
       {
         id: 'card_1',
@@ -84,9 +84,18 @@ const SAMPLE_PAGES: Page[] = [
   },
 ];
 
-export default function StoryViewerPage({ params }: { params: { id: string } }) {
+export default function StoryViewerPage({ params }: { params: Promise<{ id: string }> }) {
   const [currentPageIndex, setCurrentPageIndex] = useState(0);
   const [showFilters, setShowFilters] = useState(false);
+  const [storyId, setStoryId] = useState<string>('');
+
+  useEffect(() => {
+    const loadParams = async () => {
+      const { id } = await params;
+      setStoryId(id);
+    };
+    loadParams();
+  }, [params]);
 
   const currentPage = SAMPLE_PAGES[currentPageIndex];
 

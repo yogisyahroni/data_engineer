@@ -27,5 +27,5 @@ type SavedQuery struct {
 
 // TableName overrides the table name
 func (SavedQuery) TableName() string {
-	return "SavedQuery"
+	return "saved_queries"
 }

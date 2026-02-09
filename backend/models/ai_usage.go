@@ -10,8 +10,10 @@ import (
 type RateLimitConfig struct {
 	ID                uuid.UUID `gorm:"type:uuid;primaryKey;default:gen_random_uuid()" json:"id"`
 	Name              string    `gorm:"size:100;not null;uniqueIndex" json:"name"`
-	LimitType         string    `gorm:"size:20;not null" json:"limitType"` // 'provider', 'user', 'global'
-	Target            *string   `gorm:"size:50" json:"target"`             // Provider name for 'provider' type
+	LimitType         string    `gorm:"size:20;not null" json:"limitType"`            // 'provider', 'user', 'global', 'endpoint'
+	Target            *string   `gorm:"size:50" json:"target"`                        // Provider name for 'provider' type
+	EndpointPattern   *string   `gorm:"size:200" json:"endpointPattern"`              // URL pattern for 'endpoint' type (e.g., "/api/auth/*")
+	Scope             string    `gorm:"size:20;not null;default:'user'" json:"scope"` // 'user', 'ip', 'user+ip'
 	RequestsPerMinute int       `gorm:"not null;default:60" json:"requestsPerMinute"`
 	RequestsPerHour   *int      `json:"requestsPerHour"`
 	RequestsPerDay    *int      `json:"requestsPerDay"`
@@ -104,6 +106,7 @@ type RateLimitViolation struct {
 	ConfigID     uuid.UUID `gorm:"type:uuid;not null" json:"configId"`
 	Provider     *string   `gorm:"size:50" json:"provider"`
 	Endpoint     *string   `gorm:"size:200" json:"endpoint"`
+	SourceIP     *string   `gorm:"size:45" json:"sourceIp"` // IPv4 or IPv6 address
 	RequestsMade int       `gorm:"not null" json:"requestsMade"`
 	LimitValue   int       `gorm:"not null" json:"limitValue"`
 	WindowType   string    `gorm:"size:20;not null" json:"windowType"` // 'minute', 'hour', 'day'

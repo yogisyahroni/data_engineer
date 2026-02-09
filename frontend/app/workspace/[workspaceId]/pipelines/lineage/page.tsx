@@ -1,11 +1,26 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { LineageGraphWrapper } from "@/components/pipelines/lineage/lineage-graph-wrapper";
 import { Separator } from "@/components/ui/separator";
 
 interface LineagePageProps {
-    params: { workspaceId: string };
+    params: Promise<{
+        workspaceId: string;
+    }>
 }
 
 export default function LineagePage({ params }: LineagePageProps) {
+    const [workspaceId, setWorkspaceId] = useState<string>('');
+
+    useEffect(() => {
+        const loadParams = async () => {
+            const { workspaceId: resolvedWorkspaceId } = await params;
+            setWorkspaceId(resolvedWorkspaceId);
+        };
+        loadParams();
+    }, [params]);
+
     return (
         <div className="space-y-6 pt-4 h-[calc(100vh-100px)]">
             <div>
@@ -18,8 +33,9 @@ export default function LineagePage({ params }: LineagePageProps) {
             <Separator />
 
             <div className="h-full pb-10">
-                <LineageGraphWrapper workspaceId={params.workspaceId} />
+                <LineageGraphWrapper workspaceId={workspaceId} />
             </div>
         </div>
     );
 }
+

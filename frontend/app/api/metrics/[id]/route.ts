@@ -2,15 +2,15 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { z } from 'zod';
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const { id } = params;
+        const { id } = await params;
 
-        const metric = await db.businessMetric.findUnique({
+         const metric = await db.businessMetric.findUnique({
             where: { id },
             include: {
                 queries: {
-                    select: { id: true, name: true, connectionId: true, type: true } // assuming type exists or just name
+                    select: { id: true, name: true, connectionId: true } // type field doesn't exist on SavedQuery model
                 }
             }
         });
@@ -43,9 +43,9 @@ const UpdateMetricSchema = z.object({
     tags: z.array(z.string()).optional(),
 });
 
-export async function PUT(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const { id } = params;
+        const { id } = await params;
         const body = await request.json();
         const validatedData = UpdateMetricSchema.parse(body);
 
@@ -67,9 +67,9 @@ export async function PUT(request: NextRequest, { params }: { params: { id: stri
     }
 }
 
-export async function DELETE(request: NextRequest, { params }: { params: { id: string } }) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
     try {
-        const { id } = params;
+        const { id } = await params;
         await db.businessMetric.delete({ where: { id } });
         return NextResponse.json({ success: true });
     } catch (error) {
@@ -80,3 +80,4 @@ export async function DELETE(request: NextRequest, { params }: { params: { id: s
         );
     }
 }
+

@@ -6,11 +6,13 @@ import { RecentFailures } from "@/components/pipelines/dashboard/recent-failures
 import { Separator } from "@/components/ui/separator";
 
 interface DashboardPageProps {
-    params: { workspaceId: string };
+    params: Promise<{
+        workspaceId: string;
+    }>
 }
 
 export default async function PipelineDashboardPage({ params }: DashboardPageProps) {
-    const { workspaceId } = params;
+    const { workspaceId } = await params;
 
     // 1. Fetch Data (Parallel)
     const [

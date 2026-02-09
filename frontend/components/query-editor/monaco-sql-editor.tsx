@@ -3,6 +3,10 @@
 import { useEffect, useRef } from 'react';
 import Editor, { useMonaco, OnMount } from '@monaco-editor/react';
 import { useTheme } from 'next-themes';
+import { registerSQLLanguage, defineSQLTheme } from '../sql-editor/monaco-config';
+import { createSQLCompletionProvider, TableSchema } from '../sql-editor/autocomplete';
+import { formatSQL } from '@/lib/sql-formatter';
+import { toast } from 'sonner';
 
 interface MonacoSqlEditorProps {
     value: string;
@@ -15,6 +19,7 @@ interface MonacoSqlEditorProps {
         }>;
     };
     height?: string;
+    dialect?: 'postgresql' | 'mysql' | 'sqlite' | 'bigquery';
 }
 
 export function MonacoSqlEditor({
@@ -23,81 +28,89 @@ export function MonacoSqlEditor({
     onExecute,
     schema,
     height = '300px',
+    dialect = 'postgresql',
 }: MonacoSqlEditorProps) {
     const { theme } = useTheme();
     const monaco = useMonaco();
     const editorRef = useRef<any>(null);
 
-    // Register completion item provider when monaco and schema are available
+    // Register enhanced SQL language when monaco loads
+    useEffect(() => {
+        if (!monaco) return;
+
+        // Register language and theme
+        registerSQLLanguage(monaco);
+        const themeName = defineSQLTheme(monaco, theme === 'dark');
+
+        // Apply theme
+        monaco.editor.setTheme(themeName);
+    }, [monaco, theme]);
+
+    // Register advanced autocomplete when schema changes
     useEffect(() => {
         if (!monaco || !schema) return;
 
-        const dispose = monaco.languages.registerCompletionItemProvider('sql', {
-            provideCompletionItems: (model, position) => {
-                const word = model.getWordUntilPosition(position);
-                const range = {
-                    startLineNumber: position.lineNumber,
-                    endLineNumber: position.lineNumber,
-                    startColumn: word.startColumn,
-                    endColumn: word.endColumn,
-                };
+        // Convert schema to TableSchema format
+        const tableSchemas: TableSchema[] = schema.tables.map((table) => ({
+            name: table.name,
+            columns: table.columns.map((col) => ({
+                name: col.name,
+                type: col.type,
+            })),
+        }));
 
-                const suggestions: any[] = [];
+        // Register completion provider
+        const disposable = monaco.languages.registerCompletionItemProvider(
+            'sql',
+            createSQLCompletionProvider(tableSchemas)
+        );
 
-                // Add table suggestions
-                schema.tables.forEach((table) => {
-                    suggestions.push({
-                        label: table.name,
-                        kind: monaco.languages.CompletionItemKind.Class,
-                        insertText: table.name,
-                        range,
-                        detail: 'Table',
-                    });
-
-                    // Add column suggestions
-                    table.columns.forEach((col) => {
-                        suggestions.push({
-                            label: col.name,
-                            kind: monaco.languages.CompletionItemKind.Field,
-                            insertText: col.name,
-                            range,
-                            detail: `${table.name} (${col.type})`,
-                        });
-                    });
-                });
-
-                // Add SQL keywords (basic list)
-                const keywords = ['SELECT', 'FROM', 'WHERE', 'JOIN', 'GROUP BY', 'ORDER BY', 'LIMIT', 'INSERT', 'UPDATE', 'DELETE', 'AND', 'OR', 'NOT', 'NULL'];
-                keywords.forEach((kw) => {
-                    suggestions.push({
-                        label: kw,
-                        kind: monaco.languages.CompletionItemKind.Keyword,
-                        insertText: kw,
-                        range,
-                    });
-                });
-
-                return { suggestions };
-            },
-        });
-
-        return () => dispose.dispose();
+        return () => disposable.dispose();
     }, [monaco, schema]);
 
     const handleEditorDidMount: OnMount = (editor, monaco) => {
         editorRef.current = editor;
 
-        // Add Keybinding for Ctrl+Enter to execute
+        // Keybinding: Ctrl+Enter to execute
         editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Enter, () => {
             if (onExecute) {
                 onExecute();
             }
         });
 
-        // Add Keybinding for Format (Ctrl+Shift+F) - Placeholder for now
-        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyF, () => {
-            editor.getAction('editor.action.formatDocument')?.run();
+        // Keybinding: Ctrl+Shift+F to format SQL
+        editor.addCommand(
+            monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyF,
+            () => {
+                try {
+                    const currentValue = editor.getValue();
+                    const formatted = formatSQL(currentValue, {
+                        dialect,
+                        keywordCase: 'upper',
+                        tabWidth: 2,
+                    });
+
+                    // Set formatted value
+                    editor.setValue(formatted);
+
+                    // Update parent
+                    onChange(formatted);
+
+                    toast.success('SQL formatted successfully');
+                } catch (error) {
+                    toast.error('Failed to format SQL');
+                    console.error('Format error:', error);
+                }
+            }
+        );
+
+        // Keybinding: Ctrl+/ to toggle line comment
+        editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.Slash, () => {
+            editor.getAction('editor.action.commentLine')?.run();
         });
+
+        // Focus editor
+        editor.focus();
     };
 
     return (
@@ -107,14 +120,34 @@ export function MonacoSqlEditor({
                 language="sql"
                 value={value}
                 onChange={(value) => onChange(value || '')}
-                theme={theme === 'dark' ? 'vs-dark' : 'light'}
+                theme={theme === 'dark' ? 'sql-dark' : 'sql-light'}
                 options={{
                     minimap: { enabled: false },
                     scrollBeyondLastLine: false,
                     fontSize: 14,
-                    fontFamily: 'JetBrains Mono, monospace', // Optional if you have this font
+                    fontFamily: 'JetBrains Mono, Consolas, monospace',
                     automaticLayout: true,
                     padding: { top: 16, bottom: 16 },
+                    lineNumbers: 'on',
+                    renderLineHighlight: 'all',
+                    folding: true,
+                    foldingStrategy: 'indentation',
+                    suggest: {
+                        showKeywords: true,
+                        showSnippets: true,
+                    },
+                    quickSuggestions: {
+                        other: true,
+                        comments: false,
+                        strings: false,
+                    },
+                    acceptSuggestionOnCommitCharacter: true,
+                    acceptSuggestionOnEnter: 'on',
+                    tabCompletion: 'on',
+                    wordBasedSuggestions: 'off',
+                    parameterHints: {
+                        enabled: true,
+                    },
                 }}
                 onMount={handleEditorDidMount}
             />

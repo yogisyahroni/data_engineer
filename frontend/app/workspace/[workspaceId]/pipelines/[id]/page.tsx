@@ -9,9 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 
 export default async function PipelineDetailPage(
-    props: { params: { workspaceId: string, id: string } }
+    props: { params: Promise<{ workspaceId: string, id: string }> }
 ) {
-    const params = props.params;
+    const params = await props.params;
     const pipeline = await db.pipeline.findUnique({
         where: { id: params.id, workspaceId: params.workspaceId },
         include: {

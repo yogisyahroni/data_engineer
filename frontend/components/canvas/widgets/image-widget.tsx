@@ -2,6 +2,7 @@
 
 import { CanvasWidget } from '../canvas-board';
 import { ImageIcon } from 'lucide-react';
+import Image from 'next/image';
 
 interface WidgetProps {
     widget: CanvasWidget;
@@ -21,13 +22,30 @@ export function ImageWidget({ widget, readOnly }: WidgetProps) {
         );
     }
 
+    // Validasi URL gambar untuk mencegah error
+    const isValidUrl = src.startsWith('http://') || src.startsWith('https://') || src.startsWith('/');
+
+    if (!isValidUrl) {
+        console.warn('ImageWidget: Invalid URL provided:', src);
+        return (
+            <div className="w-full h-full flex flex-col items-center justify-center bg-muted/30 text-muted-foreground p-4">
+                <ImageIcon className="w-8 h-8 mb-2 opacity-50" />
+                <span className="text-xs text-center">Invalid image URL: {src}</span>
+            </div>
+        );
+    }
+
     return (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
             src={src}
             alt="Widget content"
-            className="w-full h-full pointer-events-none select-none"
+            fill
+            className="pointer-events-none select-none"
             style={{ objectFit: fit }}
+            onError={(e) => {
+                console.error('ImageWidget: Failed to load image', src, e);
+            }}
         />
     );
 }
+

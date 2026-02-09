@@ -23,7 +23,7 @@ interface Card {
   content?: any;
 }
 
-export default function StoryBuilderPage({ params }: { params: { id: string } }) {
+export default function StoryBuilderPage({ params }: { params: Promise<{ id: string }> }) {
   const [pages, setPages] = useState<Page[]>([
     {
       id: 'page_1',

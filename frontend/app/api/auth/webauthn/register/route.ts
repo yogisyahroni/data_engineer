@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
         const options = await generateRegistrationOptions({
             rpName: 'InsightEngine',
             rpID,
-            userID: user.id, // Using the user ID directly
+            userID: new TextEncoder().encode(user.id),
             userName: user.email,
             // Don't re-register existing authenticators
             excludeCredentials: user.authenticators.map((authenticator) => ({
@@ -90,7 +90,12 @@ export async function POST(req: NextRequest) {
         });
 
         if (verification.verified && verification.registrationInfo) {
-            const { credentialPublicKey, credentialID, counter, credentialDeviceType, credentialBackedUp } = verification.registrationInfo;
+            const regInfo = verification.registrationInfo as any;
+            const credentialID = regInfo.credentialID || regInfo.credID;
+            const credentialPublicKey = regInfo.credentialPublicKey || regInfo.publicKey;
+            const counter = regInfo.counter || regInfo.signCount;
+            const credentialDeviceType = regInfo.credentialDeviceType || regInfo.deviceType;
+            const credentialBackedUp = regInfo.credentialBackedUp || regInfo.backedUp;
 
             await db.authenticator.create({
                 data: {
@@ -99,7 +104,7 @@ export async function POST(req: NextRequest) {
                     counter: BigInt(counter),
                     credentialDeviceType,
                     credentialBackedUp,
-                    transports: body.response.transports?.join(',') || 'internal', // fallback
+                    transports: body.response.transports?.join(',') || 'internal',
                     userId: session.user.id,
                 },
             });

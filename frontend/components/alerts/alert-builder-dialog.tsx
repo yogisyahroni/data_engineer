@@ -65,8 +65,7 @@ export function AlertBuilderDialog({
                     column,
                     operator,
                     threshold: Number(threshold),
-                    schedule: 'hourly', // Default for MVP
-                    schedule: 'hourly', // Default for MVP
+                    schedule: 'hourly',
                     email,
                     webhookUrl,
                     webhookHeaders: JSON.parse(webhookHeaders || '{}')

@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 
-export async function GET(req: NextRequest, { params }: { params: { token: string } }) {
-    const { token } = params;
+export async function GET(req: NextRequest, { params }: { params: Promise<{ token: string }> }) {
+    const { token } = await params;
 
     try {
         const shareLink = await db.shareLink.findUnique({
@@ -54,3 +54,4 @@ export async function GET(req: NextRequest, { params }: { params: { token: strin
         return NextResponse.json({ error: 'Server error' }, { status: 500 });
     }
 }
+

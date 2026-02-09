@@ -44,46 +44,37 @@ interface Canvas {
 
 export default function CanvasPage() {
     const router = useRouter();
-    const { workspace } = useWorkspace();
+    const { workspaceId } = useWorkspace();
     const [canvases, setCanvases] = useState<Canvas[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const [showCreateDialog, setShowCreateDialog] = useState(false);
     const [creating, setCreating] = useState(false);
 
-    // Form state
     const [name, setName] = useState('');
     const [description, setDescription] = useState('');
     const [layout, setLayout] = useState<'free' | 'grid'>('free');
 
     useEffect(() => {
-        if (workspace) {
-            fetchCanvases();
-        }
-    }, [workspace]);
-
-    const fetchCanvases = async () => {
-        if (!workspace) return;
-
-        try {
+        if (workspaceId) {
             setLoading(true);
-            const res = await fetch(`/api/canvas?workspaceId=${workspace.id}`);
-
-            if (!res.ok) {
-                throw new Error('Failed to fetch canvases');
-            }
-
-            const data = await res.json();
-            setCanvases(data.canvases || []);
-        } catch (error: any) {
-            toast.error(error.message || 'Failed to load canvases');
-        } finally {
-            setLoading(false);
+            fetch(`/api/canvas?workspaceId=${workspaceId}`)
+                .then(async res => {
+                    if (!res.ok) throw new Error('Failed to load canvases');
+                    const data = await res.json();
+                    setCanvases(data.canvases || []);
+                })
+                .catch((error: any) => {
+                    toast.error(error.message || 'Failed to load canvases');
+                })
+                .finally(() => {
+                    setLoading(false);
+                });
         }
-    };
+    }, [workspaceId]);
 
     const handleCreate = async () => {
-        if (!workspace) return;
+        if (!workspaceId) return;
 
         if (!name.trim()) {
             toast.error('Canvas name is required');
@@ -100,8 +91,8 @@ export default function CanvasPage() {
                     description,
                     layout,
                     gridSize: layout === 'grid' ? 8 : undefined,
-                    workspaceId: workspace.id
-                })
+                    workspaceId: workspaceId
+                }),
             });
 
             if (!res.ok) {
@@ -118,7 +109,7 @@ export default function CanvasPage() {
             setLayout('free');
             setShowCreateDialog(false);
 
-            // Navigate to the new canvas
+            // Navigate to new canvas
             router.push(`/canvas/${data.canvas.id}`);
         } catch (error: any) {
             toast.error(error.message || 'Failed to create canvas');

@@ -5,9 +5,19 @@ const DEV_USER_ID = 'user_123';
 
 export async function GET() {
     try {
-        let user = await db.user.findUnique({
-            where: { id: DEV_USER_ID },
+        // Check by Email first to avoid P2002 (Unique constraint)
+        const existingByEmail = await db.user.findUnique({
+            where: { email: 'dev@insightengine.ai' }
         });
+
+        let user = existingByEmail;
+
+        if (!user) {
+            const existingById = await db.user.findUnique({
+                where: { id: DEV_USER_ID }
+            });
+            user = existingById;
+        }
 
         if (!user) {
             console.log('[DevAuth] User not found, seeding user_123...');
@@ -18,7 +28,7 @@ export async function GET() {
                     email: 'dev@insightengine.ai',
                     name: 'Developer Mode',
                     password: 'dev_password_hash', // Not used for dev auth
-                    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=dev',
+                    // avatar field removed
                 },
             });
         }

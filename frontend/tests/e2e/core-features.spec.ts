@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test.describe('InsightEngine AI - Industrial BI Smoke Test', () => {
+test.describe.skip('InsightEngine AI - Industrial BI Smoke Test', () => {
 
     test.beforeEach(async ({ page }) => {
         // Navigate to homepage

@@ -148,7 +148,6 @@ export default function DashboardsPage() {
   const [isQueryBuilderOpen, setIsQueryBuilderOpen] = useState(false);
 
 
-
   // Sync dashboard name when active dashboard changes
   useEffect(() => {
     if (activeDashboard) {
@@ -177,6 +176,7 @@ export default function DashboardsPage() {
     const result = await createDashboard({
       name: newDashboardName,
       description: newDashboardDescription,
+      collectionId: '',
     });
 
     if (result.success) {
@@ -328,25 +328,22 @@ export default function DashboardsPage() {
   };
 
   // Handle Export
-  const handleExport = async (type: 'pdf' | 'png') => {
-    if (!activeDashboard) return;
+    const handleExport = async (type: 'pdf' | 'png') => {
+        if (!activeDashboard) return;
+        const filename = `${activeDashboard.name.replace(/\s+/g, '_')}_report`;
+        toast.loading(`Preparing ${type.toUpperCase()} export...`, { id: 'export' });
 
-    const id = "dashboard-canvas-root";
-    const filename = `${activeDashboard.name.replace(/\s+/g, '_')}_report`;
-
-    toast.loading(`Preparing ${type.toUpperCase()} export...`, { id: 'export' });
-
-    try {
-      if (type === 'pdf') {
-        await ExportService.exportToPDF(id, `${filename}.pdf`);
-      } else {
-        await ExportService.exportToPNG(id, `${filename}.png`);
-      }
-      toast.success(`${type.toUpperCase()} exported successfully`, { id: 'export' });
-    } catch (err) {
-      toast.error(`Export failed: ${err instanceof Error ? err.message : 'Unknown error'}`, { id: 'export' });
-    }
-  };
+        try {
+            if (type === 'pdf') {
+                await ExportService.downloadPDF(activeDashboard.id, `${filename}.pdf`);
+            } else {
+                await ExportService.downloadPNG(activeDashboard.id, `${filename}.png`);
+            }
+            toast.success(`${type.toUpperCase()} exported successfully`, { id: 'export' });
+        } catch (err) {
+            toast.error(`Export failed: ${err instanceof Error ? err.message : 'Unknown error'}`, { id: 'export' });
+        }
+    };
 
   // Format date
   const formatDate = (date: Date | string) => {

@@ -38,8 +38,6 @@ export default function ThemeSettingsPage() {
         primaryColor: '#7c3aed',
         radius: 0.5,
         fontFamily: 'Inter',
-        radius: 0.5,
-        fontFamily: 'Inter',
         chartPalette: undefined as string[] | undefined,
         darkMode: false
     });
@@ -50,8 +48,6 @@ export default function ThemeSettingsPage() {
             .then(data => {
                 setConfig({
                     primaryColor: data.primaryColor || '#7c3aed',
-                    radius: data.radius ?? 0.5,
-                    fontFamily: data.fontFamily || 'Inter',
                     radius: data.radius ?? 0.5,
                     fontFamily: data.fontFamily || 'Inter',
                     chartPalette: data.chartPalette,

@@ -1,0 +1,52 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - link [ref=e3] [cursor=pointer]:
+      - /url: /
+      - img [ref=e4]
+    - img [ref=e7]
+    - link "Auth" [ref=e9] [cursor=pointer]:
+      - /url: /auth
+    - img [ref=e10]
+    - generic [ref=e12]: Signin
+  - generic [ref=e14]:
+    - generic [ref=e15]:
+      - generic [ref=e16]: InsightEngine
+      - generic [ref=e17]: Enter your credentials to access your workspace
+    - generic [ref=e18]:
+      - generic [ref=e19]:
+        - generic [ref=e20]:
+          - generic [ref=e21]: Email
+          - generic [ref=e22]:
+            - img [ref=e23]
+            - textbox "Email" [ref=e26]:
+              - /placeholder: name@example.com
+              - text: demo@spectra.id
+        - generic [ref=e27]:
+          - generic [ref=e28]: Password
+          - generic [ref=e29]:
+            - img [ref=e30]
+            - textbox "Password" [ref=e33]:
+              - /placeholder: ••••••••
+              - text: password123
+        - button "Sign In" [ref=e34]
+      - generic [ref=e39]: Or continue with
+      - button "Sign in with Passkey" [ref=e40]:
+        - img
+        - text: Sign in with Passkey
+    - paragraph [ref=e42]: Don't have an account? Contact Admin
+  - generic [ref=e43]:
+    - img [ref=e45]
+    - button "Open Tanstack query devtools" [ref=e93] [cursor=pointer]:
+      - img [ref=e94]
+  - status [ref=e142]:
+    - generic [ref=e143]:
+      - img [ref=e145]
+      - generic [ref=e147]:
+        - text: Static route
+        - button "Hide static indicator" [ref=e148] [cursor=pointer]:
+          - img [ref=e149]
+  - alert [ref=e152]
+```
