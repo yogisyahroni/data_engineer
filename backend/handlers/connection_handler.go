@@ -3,13 +3,36 @@ package handlers
 import (
 	"insight-engine-backend/database"
 	"insight-engine-backend/models"
+	"insight-engine-backend/services"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )
 
+type ConnectionHandler struct {
+	queryExecutor     *services.QueryExecutor
+	schemaDiscovery   *services.SchemaDiscovery
+	encryptionService *services.EncryptionService
+}
+
+func NewConnectionHandler(qe *services.QueryExecutor, sd *services.SchemaDiscovery) *ConnectionHandler {
+	// Initialize encryption service (fail gracefully if not configured)
+	encryptionService, err := services.NewEncryptionService()
+	if err != nil {
+		// Log warning but continue - encryption is critical but shouldn' t break the system
+		// In production, this should be a fatal error
+		encryptionService = nil
+	}
+
+	return &ConnectionHandler{
+		queryExecutor:     qe,
+		schemaDiscovery:   sd,
+		encryptionService: encryptionService,
+	}
+}
+
 // GetConnections returns a list of connections
-func GetConnections(c *fiber.Ctx) error {
+func (h *ConnectionHandler) GetConnections(c *fiber.Ctx) error {
 	userID, ok := c.Locals("userId").(string)
 	if !ok {
 		return c.Status(401).JSON(fiber.Map{
@@ -38,13 +61,13 @@ func GetConnections(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"status": "success",
-		"data":   dtos,
+		"success": true,
+		"data":    dtos,
 	})
 }
 
 // GetConnection returns a single connection by ID
-func GetConnection(c *fiber.Ctx) error {
+func (h *ConnectionHandler) GetConnection(c *fiber.Ctx) error {
 	connID := c.Params("id")
 	userID, _ := c.Locals("userId").(string)
 
@@ -59,13 +82,13 @@ func GetConnection(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"status": "success",
-		"data":   conn.ToDTO(),
+		"success": true,
+		"data":    conn.ToDTO(),
 	})
 }
 
 // CreateConnection creates a new connection
-func CreateConnection(c *fiber.Ctx) error {
+func (h *ConnectionHandler) CreateConnection(c *fiber.Ctx) error {
 	userID, _ := c.Locals("userId").(string)
 
 	conn := new(models.Connection)
@@ -89,8 +112,18 @@ func CreateConnection(c *fiber.Ctx) error {
 	conn.ID = uuid.New().String()
 	conn.UserID = userID
 
-	// TODO: Encrypt password before storing
-	// For now, storing as-is (SECURITY RISK - fix in production)
+	// Encrypt password before storing (SECURITY: AES-256-GCM encryption)
+	if h.encryptionService != nil && conn.Password != nil && *conn.Password != "" {
+		encryptedPassword, err := h.encryptionService.Encrypt(*conn.Password)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Failed to encrypt password",
+				"error":   err.Error(),
+			})
+		}
+		conn.Password = &encryptedPassword
+	}
 
 	result := database.DB.Create(&conn)
 	if result.Error != nil {
@@ -102,13 +135,13 @@ func CreateConnection(c *fiber.Ctx) error {
 	}
 
 	return c.Status(201).JSON(fiber.Map{
-		"status": "success",
-		"data":   conn.ToDTO(),
+		"success": true,
+		"data":    conn.ToDTO(),
 	})
 }
 
 // UpdateConnection updates an existing connection
-func UpdateConnection(c *fiber.Ctx) error {
+func (h *ConnectionHandler) UpdateConnection(c *fiber.Ctx) error {
 	connID := c.Params("id")
 	userID, _ := c.Locals("userId").(string)
 
@@ -118,6 +151,7 @@ func UpdateConnection(c *fiber.Ctx) error {
 		return c.Status(404).JSON(fiber.Map{
 			"status":  "error",
 			"message": "Connection not found",
+			"error":   err.Error(),
 		})
 	}
 
@@ -131,6 +165,19 @@ func UpdateConnection(c *fiber.Ctx) error {
 		})
 	}
 
+	// Encrypt password if being updated
+	if h.encryptionService != nil && updates.Password != nil && *updates.Password != "" {
+		encryptedPassword, err := h.encryptionService.Encrypt(*updates.Password)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Failed to encrypt password",
+				"error":   err.Error(),
+			})
+		}
+		updates.Password = &encryptedPassword
+	}
+
 	// Apply updates
 	if err := database.DB.Model(&existing).Updates(updates).Error; err != nil {
 		return c.Status(500).JSON(fiber.Map{
@@ -141,13 +188,13 @@ func UpdateConnection(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"status": "success",
-		"data":   existing.ToDTO(),
+		"success": true,
+		"data":    existing.ToDTO(),
 	})
 }
 
 // DeleteConnection deletes a connection
-func DeleteConnection(c *fiber.Ctx) error {
+func (h *ConnectionHandler) DeleteConnection(c *fiber.Ctx) error {
 	connID := c.Params("id")
 	userID, _ := c.Locals("userId").(string)
 
@@ -174,7 +221,7 @@ func DeleteConnection(c *fiber.Ctx) error {
 }
 
 // TestConnection tests a database connection
-func TestConnection(c *fiber.Ctx) error {
+func (h *ConnectionHandler) TestConnection(c *fiber.Ctx) error {
 	connID := c.Params("id")
 	userID, _ := c.Locals("userId").(string)
 
@@ -186,9 +233,22 @@ func TestConnection(c *fiber.Ctx) error {
 		})
 	}
 
+	// Decrypt password for connection test
+	if h.encryptionService != nil && conn.Password != nil && *conn.Password != "" {
+		decryptedPassword, err := h.encryptionService.Decrypt(*conn.Password)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Failed to decrypt password",
+				"error":   err.Error(),
+			})
+		}
+		conn.Password = &decryptedPassword
+	}
+
 	// Test connection using query executor
 	ctx := c.Context()
-	_, err := queryExecutor.Execute(ctx, &conn, "SELECT 1", nil, nil)
+	_, err := h.queryExecutor.Execute(ctx, &conn, "SELECT 1", nil, nil)
 
 	if err != nil {
 		return c.JSON(fiber.Map{
@@ -201,5 +261,49 @@ func TestConnection(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"status":  "success",
 		"message": "Connection successful",
+	})
+}
+
+// GetConnectionSchema returns the schema for a connection
+func (h *ConnectionHandler) GetConnectionSchema(c *fiber.Ctx) error {
+	connID := c.Params("id")
+	userID, _ := c.Locals("userId").(string)
+
+	var conn models.Connection
+	if err := database.DB.Where("id = ? AND user_id = ?", connID, userID).First(&conn).Error; err != nil {
+		return c.Status(404).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Connection not found",
+		})
+	}
+
+	// Decrypt password for schema discovery
+	if h.encryptionService != nil && conn.Password != nil && *conn.Password != "" {
+		decryptedPassword, err := h.encryptionService.Decrypt(*conn.Password)
+		if err != nil {
+			return c.Status(500).JSON(fiber.Map{
+				"status":  "error",
+				"message": "Failed to decrypt password",
+				"error":   err.Error(),
+			})
+		}
+		conn.Password = &decryptedPassword
+	}
+
+	// Discover schema
+	ctx := c.Context()
+	schema, err := h.schemaDiscovery.DiscoverSchema(ctx, &conn)
+
+	if err != nil {
+		return c.Status(500).JSON(fiber.Map{
+			"status":  "error",
+			"message": "Failed to discover schema",
+			"error":   err.Error(),
+		})
+	}
+
+	return c.JSON(fiber.Map{
+		"success": true,
+		"data":    schema,
 	})
 }

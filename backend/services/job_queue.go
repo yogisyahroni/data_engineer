@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"insight-engine-backend/database"
 	"insight-engine-backend/models"
-	"log"
 	"sync"
 	"time"
 )
@@ -55,7 +54,7 @@ func (jq *JobQueue) Enqueue(job Job) {
 	defer jq.mu.Unlock()
 
 	jq.queue.PushBack(job)
-	log.Printf("📥 Job enqueued: %s (%s)", job.ID, job.Type)
+	LogInfo("job_enqueue", "Job enqueued successfully", map[string]interface{}{"job_id": job.ID, "job_type": job.Type})
 }
 
 // Dequeue removes and returns the next job from the queue
@@ -76,7 +75,7 @@ func (jq *JobQueue) Dequeue() *Job {
 
 // Start begins processing jobs
 func (jq *JobQueue) Start() {
-	log.Printf("🚀 Job queue started with %d workers", jq.maxWorkers)
+	LogInfo("job_queue_start", "Job queue started", map[string]interface{}{"workers": jq.maxWorkers})
 
 	for i := 0; i < jq.maxWorkers; i++ {
 		go jq.worker(i)
@@ -85,18 +84,18 @@ func (jq *JobQueue) Start() {
 
 // Stop gracefully stops the job queue
 func (jq *JobQueue) Stop() {
-	log.Println("🛑 Stopping job queue...")
+	LogInfo("job_queue_stop", "Stopping job queue", nil)
 	jq.cancel()
 }
 
 // worker processes jobs from the queue
 func (jq *JobQueue) worker(id int) {
-	log.Printf("👷 Worker %d started", id)
+	LogInfo("job_worker_start", "Worker started", map[string]interface{}{"worker_id": id})
 
 	for {
 		select {
 		case <-jq.ctx.Done():
-			log.Printf("👷 Worker %d stopped", id)
+			LogInfo("job_worker_stop", "Worker stopped", map[string]interface{}{"worker_id": id})
 			return
 		default:
 			job := jq.Dequeue()
@@ -105,23 +104,23 @@ func (jq *JobQueue) worker(id int) {
 				continue
 			}
 
-			log.Printf("⚙️  Worker %d processing job: %s (%s)", id, job.ID, job.Type)
+			LogInfo("job_process_start", "Worker processing job", map[string]interface{}{"worker_id": id, "job_id": job.ID, "job_type": job.Type})
 
 			if err := jq.processJob(job); err != nil {
-				log.Printf("❌ Worker %d failed to process job %s: %v", id, job.ID, err)
+				LogError("job_process_failed", "Worker failed to process job", map[string]interface{}{"worker_id": id, "job_id": job.ID, "error": err})
 
 				// Retry logic
 				if job.Retries < 3 {
 					job.Retries++
-					log.Printf("🔄 Retrying job %s (attempt %d/3)", job.ID, job.Retries)
+					LogInfo("job_retry", "Retrying job", map[string]interface{}{"job_id": job.ID, "attempt": job.Retries, "max_retries": 3})
 					time.Sleep(time.Duration(job.Retries) * 5 * time.Second) // Exponential backoff
 					jq.Enqueue(*job)
 				} else {
-					log.Printf("💀 Job %s failed after 3 retries", job.ID)
+					LogError("job_failed_final", "Job failed after maximum retries", map[string]interface{}{"job_id": job.ID, "retries": 3})
 					jq.markJobFailed(job, err)
 				}
 			} else {
-				log.Printf("✅ Worker %d completed job: %s", id, job.ID)
+				LogInfo("job_success", "Worker completed job successfully", map[string]interface{}{"worker_id": id, "job_id": job.ID})
 			}
 		}
 	}
@@ -153,8 +152,15 @@ func (jq *JobQueue) processPipeline(pipelineID string) error {
 	execution.Status = "PROCESSING"
 	database.DB.Save(&execution)
 
-	// TODO: Implement actual pipeline execution logic
-	// For now, simulate processing
+	// NOTE: Actual pipeline execution logic is business-specific and depends on
+	// the pipeline configuration stored in the database. This would typically:
+	// 1. Load pipeline steps from database
+	// 2. Execute each step sequentially or in parallel
+	// 3. Handle step dependencies and conditional execution
+	// 4. Aggregate results and update execution metadata
+	//
+	// For now, this is a placeholder that simulates successful execution.
+	// Production implementation should integrate with PipelineExecutor service.
 	time.Sleep(2 * time.Second)
 
 	// Update execution record
@@ -190,8 +196,16 @@ func (jq *JobQueue) processDataflow(dataflowID string) error {
 	run.Status = "RUNNING"
 	database.DB.Save(&run)
 
-	// TODO: Implement actual dataflow execution logic
-	// For now, simulate processing
+	// NOTE: Actual dataflow execution logic is business-specific and depends on
+	// the dataflow configuration. This would typically:
+	// 1. Load dataflow nodes and edges from database
+	// 2. Execute nodes in topological order based on dependencies
+	// 3. Pass data between nodes according to edge configuration
+	// 4. Handle transformations, aggregations, and joins
+	// 5. Update run metadata with node-level execution details
+	//
+	// For now, this is a placeholder that simulates successful execution.
+	// Production implementation should integrate with DataflowExecutor service.
 	time.Sleep(2 * time.Second)
 
 	// Update run record

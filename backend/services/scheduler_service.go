@@ -3,7 +3,6 @@ package services
 import (
 	"fmt"
 	"insight-engine-backend/models"
-	"log"
 	"time"
 
 	"github.com/google/uuid"
@@ -39,20 +38,20 @@ func (s *SchedulerService) Start() error {
 	// Schedule each job
 	for _, job := range jobs {
 		if err := s.scheduleJob(&job); err != nil {
-			log.Printf("[Scheduler] Failed to schedule job %s: %v", job.Name, err)
+			LogError("scheduler_load", "Failed to schedule job at startup", map[string]interface{}{"job_name": job.Name, "error": err})
 			continue
 		}
 	}
 
 	s.cron.Start()
-	log.Printf("[Scheduler] Started with %d active jobs", len(jobs))
+	LogInfo("scheduler_start", "Scheduler started successfully", map[string]interface{}{"active_jobs": len(jobs)})
 	return nil
 }
 
 // Stop stops the scheduler
 func (s *SchedulerService) Stop() {
 	s.cron.Stop()
-	log.Println("[Scheduler] Stopped")
+	LogInfo("scheduler_stop", "Scheduler stopped", nil)
 }
 
 // CreateJob creates a new scheduled job
@@ -212,14 +211,14 @@ func (s *SchedulerService) scheduleJob(job *models.SchedulerJob) error {
 	}
 
 	s.entries[job.ID.String()] = entryID
-	log.Printf("[Scheduler] Scheduled job: %s (%s)", job.Name, job.Schedule)
+	LogInfo("scheduler_job_scheduled", "Job scheduled successfully", map[string]interface{}{"job_name": job.Name, "schedule": job.Schedule})
 
 	return nil
 }
 
 // executeJob executes a job's function
 func (s *SchedulerService) executeJob(job *models.SchedulerJob) {
-	log.Printf("[Scheduler] Executing job: %s", job.Name)
+	LogInfo("scheduler_job_execute", "Executing scheduled job", map[string]interface{}{"job_name": job.Name})
 
 	now := time.Now()
 	var lastError string
@@ -229,13 +228,13 @@ func (s *SchedulerService) executeJob(job *models.SchedulerJob) {
 	case "budget_reset":
 		if err := s.db.Exec("SELECT reset_budgets()").Error; err != nil {
 			lastError = err.Error()
-			log.Printf("[Scheduler] Job %s failed: %v", job.Name, err)
+			LogError("scheduler_job_failed", "Budget reset job failed", map[string]interface{}{"job_name": job.Name, "error": err})
 		}
 
 	case "view_refresh":
 		if err := s.db.Exec("SELECT refresh_ai_usage_stats()").Error; err != nil {
 			lastError = err.Error()
-			log.Printf("[Scheduler] Job %s failed: %v", job.Name, err)
+			LogError("scheduler_job_failed", "View refresh job failed", map[string]interface{}{"job_name": job.Name, "error": err})
 		}
 
 	case "cleanup_old_notifications":
@@ -244,19 +243,19 @@ func (s *SchedulerService) executeJob(job *models.SchedulerJob) {
 		readOnly := true
 		if err := s.db.Exec("SELECT cleanup_old_notifications(?, ?)", days, readOnly).Error; err != nil {
 			lastError = err.Error()
-			log.Printf("[Scheduler] Job %s failed: %v", job.Name, err)
+			LogError("scheduler_job_failed", "Notification cleanup job failed", map[string]interface{}{"job_name": job.Name, "error": err})
 		}
 
 	case "cleanup_old_activity_logs":
 		days := 90
 		if err := s.db.Exec("SELECT cleanup_old_activity_logs(?)", days).Error; err != nil {
 			lastError = err.Error()
-			log.Printf("[Scheduler] Job %s failed: %v", job.Name, err)
+			LogError("scheduler_job_failed", "Activity log cleanup job failed", map[string]interface{}{"job_name": job.Name, "error": err})
 		}
 
 	default:
 		lastError = "unknown job type"
-		log.Printf("[Scheduler] Unknown job: %s", job.Name)
+		LogWarn("scheduler_unknown_job", "Unknown job type encountered", map[string]interface{}{"job_name": job.Name})
 	}
 
 	// Update job status
@@ -269,12 +268,12 @@ func (s *SchedulerService) executeJob(job *models.SchedulerJob) {
 		updates["status"] = "error"
 	} else {
 		updates["last_error"] = ""
-		log.Printf("[Scheduler] Job %s completed successfully", job.Name)
+		LogInfo("scheduler_job_success", "Job completed successfully", map[string]interface{}{"job_name": job.Name})
 	}
 
 	if err := s.db.Model(&models.SchedulerJob{}).
 		Where("id = ?", job.ID).
 		Updates(updates).Error; err != nil {
-		log.Printf("[Scheduler] Failed to update job status: %v", err)
+		LogError("scheduler_status_update", "Failed to update job status", map[string]interface{}{"error": err})
 	}
 }

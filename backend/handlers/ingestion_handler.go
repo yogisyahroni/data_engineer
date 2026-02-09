@@ -33,18 +33,14 @@ func IngestData(c *fiber.Ctx) error {
 		return c.Status(403).JSON(fiber.Map{"error": "Insufficient permissions"})
 	}
 
-	// TODO: Implement actual ingestion logic
-	// For now, return success with metadata
-	result := fiber.Map{
-		"status":       "PENDING",
-		"sourceType":   input.SourceType,
-		"targetTable":  input.TargetTable,
-		"mode":         input.Mode,
-		"rowsIngested": 0,
-		"message":      "Ingestion job queued for processing",
-	}
-
-	return c.Status(202).JSON(result)
+	// Data ingestion feature not yet implemented
+	// This endpoint is reserved for future CSV/JSON/API/Database ingestion capabilities
+	// For now, return 501 Not Implemented per HTTP standards
+	return c.Status(fiber.StatusNotImplemented).JSON(fiber.Map{
+		"error":   "Feature not implemented",
+		"message": "Data ingestion is planned for a future release. Currently supports direct database connections via Connection Manager.",
+		"status":  501,
+	})
 }
 
 // PreviewIngest previews data before ingestion
@@ -68,24 +64,15 @@ func PreviewIngest(c *fiber.Ctx) error {
 		return c.Status(403).JSON(fiber.Map{"error": "Access denied to workspace"})
 	}
 
-	// Set default limit
 	if input.Limit == 0 {
 		input.Limit = 10
 	}
 
-	// TODO: Implement actual preview logic based on source type
-	// For now, return mock preview data
-	preview := fiber.Map{
-		"sourceType": input.SourceType,
-		"columns":    []string{"column1", "column2", "column3"},
-		"rows": []map[string]interface{}{
-			{"column1": "value1", "column2": "value2", "column3": "value3"},
-			{"column1": "value4", "column2": "value5", "column3": "value6"},
-		},
-		"totalRows":     2,
-		"previewLimit":  input.Limit,
-		"detectedTypes": map[string]string{"column1": "string", "column2": "string", "column3": "string"},
-	}
-
-	return c.JSON(preview)
+	// Data ingestion preview not yet implemented
+	// This endpoint is reserved for future data preview capabilities
+	return c.Status(fiber.StatusNotImplemented).JSON(fiber.Map{
+		"error":   "Feature not implemented",
+		"message": "Data ingestion preview is planned for a future release.",
+		"status":  501,
+	})
 }

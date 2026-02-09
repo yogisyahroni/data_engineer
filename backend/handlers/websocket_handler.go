@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"insight-engine-backend/services"
-	"log"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -26,14 +25,14 @@ func (h *WebSocketHandler) HandleConnection(c *websocket.Conn) {
 	// Get user ID from locals (set by auth middleware)
 	userID := c.Locals("userID")
 	if userID == nil {
-		log.Println("[WebSocket] No user ID in context")
+		services.LogWarn("websocket_no_user", "No user ID in WebSocket context", nil)
 		c.Close()
 		return
 	}
 
 	userIDStr, ok := userID.(string)
 	if !ok {
-		log.Println("[WebSocket] Invalid user ID type")
+		services.LogWarn("websocket_invalid_user_type", "Invalid user ID type in WebSocket context", nil)
 		c.Close()
 		return
 	}
@@ -71,13 +70,13 @@ func (h *WebSocketHandler) readPump(client *services.WebSocketClient) {
 		_, message, err := client.Conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("[WebSocket] Error reading message: %v", err)
+				services.LogError("websocket_read_error", "Error reading WebSocket message", map[string]interface{}{"error": err, "user_id": client.UserID})
 			}
 			break
 		}
 
 		// Handle incoming messages (ping/pong, etc)
-		log.Printf("[WebSocket] Received message from %s: %s", client.UserID, string(message))
+		services.LogDebug("websocket_message_received", "Message received from client", map[string]interface{}{"user_id": client.UserID, "message_length": len(message)})
 	}
 }
 
@@ -100,7 +99,7 @@ func (h *WebSocketHandler) writePump(client *services.WebSocketClient) {
 			}
 
 			if err := client.Conn.WriteMessage(websocket.TextMessage, message); err != nil {
-				log.Printf("[WebSocket] Error writing message: %v", err)
+				services.LogError("websocket_write_error", "Error writing WebSocket message", map[string]interface{}{"error": err, "user_id": client.UserID})
 				return
 			}
 

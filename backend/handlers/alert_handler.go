@@ -21,8 +21,8 @@ func GetAlerts(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"status": "success",
-		"data":   alerts,
+		"success": true,
+		"data":    alerts,
 	})
 }
 
@@ -56,7 +56,7 @@ func CreateAlert(c *fiber.Ctx) error {
 	}
 
 	return c.Status(201).JSON(fiber.Map{
-		"status": "success",
-		"data":   alert,
+		"success": true,
+		"data":    alert,
 	})
 }

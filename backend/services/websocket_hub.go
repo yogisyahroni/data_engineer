@@ -2,7 +2,6 @@ package services
 
 import (
 	"encoding/json"
-	"log"
 	"sync"
 
 	"github.com/gofiber/websocket/v2"
@@ -76,8 +75,7 @@ func (h *WebSocketHub) registerClient(client *WebSocketClient) {
 	}
 	h.clients[client.UserID][client] = true
 
-	log.Printf("[WebSocket] Client registered: UserID=%s, Total connections=%d",
-		client.UserID, len(h.clients[client.UserID]))
+	LogInfo("websocket_client_registered", "WebSocket client registered", map[string]interface{}{"user_id": client.UserID, "total_connections": len(h.clients[client.UserID])})
 }
 
 // unregisterClient unregisters a client
@@ -94,8 +92,7 @@ func (h *WebSocketHub) unregisterClient(client *WebSocketClient) {
 				delete(h.clients, client.UserID)
 			}
 
-			log.Printf("[WebSocket] Client unregistered: UserID=%s, Remaining connections=%d",
-				client.UserID, len(h.clients[client.UserID]))
+			LogInfo("websocket_client_unregistered", "WebSocket client unregistered", map[string]interface{}{"user_id": client.UserID, "remaining_connections": len(h.clients[client.UserID])})
 		}
 	}
 }
@@ -107,7 +104,7 @@ func (h *WebSocketHub) broadcastMessage(message *WebSocketMessage) {
 
 	messageBytes, err := json.Marshal(message)
 	if err != nil {
-		log.Printf("[WebSocket] Failed to marshal message: %v", err)
+		LogError("websocket_marshal_error", "Failed to marshal WebSocket message", map[string]interface{}{"error": err})
 		return
 	}
 
@@ -119,7 +116,7 @@ func (h *WebSocketHub) broadcastMessage(message *WebSocketMessage) {
 				case client.Send <- messageBytes:
 				default:
 					// Client's send channel is full, skip
-					log.Printf("[WebSocket] Client send buffer full: UserID=%s", message.UserID)
+					LogWarn("websocket_buffer_full", "Client send buffer full", map[string]interface{}{"user_id": message.UserID})
 				}
 			}
 		}

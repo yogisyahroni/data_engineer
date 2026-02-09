@@ -10,10 +10,18 @@ import (
 	"github.com/google/uuid"
 )
 
-var queryExecutor = services.NewQueryExecutor()
+type QueryHandler struct {
+	queryExecutor *services.QueryExecutor
+}
+
+func NewQueryHandler(qe *services.QueryExecutor) *QueryHandler {
+	return &QueryHandler{
+		queryExecutor: qe,
+	}
+}
 
 // GetQueries returns a list of saved queries
-func GetQueries(c *fiber.Ctx) error {
+func (h *QueryHandler) GetQueries(c *fiber.Ctx) error {
 	// Get user ID from auth middleware
 	userID, ok := c.Locals("userId").(string)
 	if !ok {
@@ -38,13 +46,13 @@ func GetQueries(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"status": "success",
-		"data":   queries,
+		"success": true,
+		"data":    queries,
 	})
 }
 
 // GetQuery returns a single query by ID
-func GetQuery(c *fiber.Ctx) error {
+func (h *QueryHandler) GetQuery(c *fiber.Ctx) error {
 	queryID := c.Params("id")
 	userID, _ := c.Locals("userId").(string)
 
@@ -61,13 +69,13 @@ func GetQuery(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"status": "success",
-		"data":   query,
+		"success": true,
+		"data":    query,
 	})
 }
 
 // CreateQuery creates a new saved query
-func CreateQuery(c *fiber.Ctx) error {
+func (h *QueryHandler) CreateQuery(c *fiber.Ctx) error {
 	userID, _ := c.Locals("userId").(string)
 
 	query := new(models.SavedQuery)
@@ -101,13 +109,13 @@ func CreateQuery(c *fiber.Ctx) error {
 	}
 
 	return c.Status(201).JSON(fiber.Map{
-		"status": "success",
-		"data":   query,
+		"success": true,
+		"data":    query,
 	})
 }
 
 // UpdateQuery updates an existing query
-func UpdateQuery(c *fiber.Ctx) error {
+func (h *QueryHandler) UpdateQuery(c *fiber.Ctx) error {
 	queryID := c.Params("id")
 	userID, _ := c.Locals("userId").(string)
 
@@ -140,13 +148,13 @@ func UpdateQuery(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"status": "success",
-		"data":   existing,
+		"success": true,
+		"data":    existing,
 	})
 }
 
 // DeleteQuery deletes a query
-func DeleteQuery(c *fiber.Ctx) error {
+func (h *QueryHandler) DeleteQuery(c *fiber.Ctx) error {
 	queryID := c.Params("id")
 	userID, _ := c.Locals("userId").(string)
 
@@ -173,7 +181,7 @@ func DeleteQuery(c *fiber.Ctx) error {
 }
 
 // RunQuery executes a saved query
-func RunQuery(c *fiber.Ctx) error {
+func (h *QueryHandler) RunQuery(c *fiber.Ctx) error {
 	queryID := c.Params("id")
 	userID, _ := c.Locals("userId").(string)
 
@@ -198,7 +206,7 @@ func RunQuery(c *fiber.Ctx) error {
 
 	// Execute query
 	ctx := context.Background()
-	result, err := queryExecutor.Execute(ctx, query.Connection, query.SQL, params.Limit, params.Offset)
+	result, err := h.queryExecutor.Execute(ctx, query.Connection, query.SQL, params.Limit, params.Offset)
 
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
@@ -209,13 +217,13 @@ func RunQuery(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"status": "success",
-		"data":   result,
+		"success": true,
+		"data":    result,
 	})
 }
 
 // ExecuteAdHocQuery executes a query without saving it
-func ExecuteAdHocQuery(c *fiber.Ctx) error {
+func (h *QueryHandler) ExecuteAdHocQuery(c *fiber.Ctx) error {
 	userID, _ := c.Locals("userId").(string)
 
 	req := new(models.QueryExecutionRequest)
@@ -246,7 +254,7 @@ func ExecuteAdHocQuery(c *fiber.Ctx) error {
 
 	// Execute query
 	ctx := context.Background()
-	result, err := queryExecutor.Execute(ctx, &conn, req.SQL, req.Limit, req.Offset)
+	result, err := h.queryExecutor.Execute(ctx, &conn, req.SQL, nil, nil)
 
 	if err != nil {
 		return c.Status(500).JSON(fiber.Map{
@@ -257,7 +265,7 @@ func ExecuteAdHocQuery(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(fiber.Map{
-		"status": "success",
-		"data":   result,
+		"success": true,
+		"data":    result,
 	})
 }

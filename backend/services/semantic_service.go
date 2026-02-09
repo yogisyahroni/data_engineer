@@ -215,7 +215,10 @@ func (s *SemanticService) Chat(ctx context.Context, userID, providerID, message,
 	history, err := s.GetConversationHistory(ctx, conversationID, 10)
 	if err != nil {
 		// Log error but continue (conversation memory is not critical)
-		fmt.Printf("Warning: Failed to load conversation history: %v\n", err)
+		LogWarn("conversation_history_load_failed", "Failed to load conversation history", map[string]interface{}{
+			"conversation_id": conversationID,
+			"error":           err,
+		})
 	}
 
 	// Build conversation context from history
@@ -274,7 +277,10 @@ func (s *SemanticService) StreamChat(ctx context.Context, userID, providerID, me
 	history, err := s.GetConversationHistory(ctx, conversationID, 10)
 	if err != nil {
 		// Log error but continue
-		fmt.Printf("Warning: Failed to load conversation history: %v\n", err)
+		LogWarn("conversation_history_load_failed", "Failed to load conversation history", map[string]interface{}{
+			"conversation_id": conversationID,
+			"error":           err,
+		})
 	}
 
 	// Build conversation context from history

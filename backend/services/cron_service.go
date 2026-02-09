@@ -1,8 +1,6 @@
 package services
 
 import (
-	"log"
-
 	"github.com/robfig/cron/v3"
 	"gorm.io/gorm"
 )
@@ -25,38 +23,38 @@ func NewCronService(db *gorm.DB) *CronService {
 func (s *CronService) Start() {
 	// Budget reset - runs every hour
 	_, err := s.cron.AddFunc("0 * * * *", func() {
-		log.Println("[CRON] Running budget reset...")
+		LogInfo("cron_budget_reset", "Starting budget reset job", nil)
 		if err := s.resetBudgets(); err != nil {
-			log.Printf("[CRON] Budget reset failed: %v", err)
+			LogError("cron_budget_reset", "Budget reset failed", map[string]interface{}{"error": err})
 		} else {
-			log.Println("[CRON] Budget reset completed successfully")
+			LogInfo("cron_budget_reset", "Budget reset completed successfully", nil)
 		}
 	})
 	if err != nil {
-		log.Printf("[CRON] Failed to schedule budget reset: %v", err)
+		LogError("cron_schedule", "Failed to schedule budget reset job", map[string]interface{}{"error": err})
 	}
 
 	// Materialized view refresh - runs every hour
 	_, err = s.cron.AddFunc("0 * * * *", func() {
-		log.Println("[CRON] Refreshing materialized views...")
+		LogInfo("cron_view_refresh", "Starting materialized view refresh job", nil)
 		if err := s.refreshMaterializedViews(); err != nil {
-			log.Printf("[CRON] View refresh failed: %v", err)
+			LogError("cron_view_refresh", "Materialized view refresh failed", map[string]interface{}{"error": err})
 		} else {
-			log.Println("[CRON] View refresh completed successfully")
+			LogInfo("cron_view_refresh", "Materialized view refresh completed successfully", nil)
 		}
 	})
 	if err != nil {
-		log.Printf("[CRON] Failed to schedule view refresh: %v", err)
+		LogError("cron_schedule", "Failed to schedule view refresh job", map[string]interface{}{"error": err})
 	}
 
 	s.cron.Start()
-	log.Println("[CRON] Cron jobs started successfully")
+	LogInfo("cron_start", "Cron jobs started successfully", nil)
 }
 
 // Stop stops all cron jobs
 func (s *CronService) Stop() {
 	s.cron.Stop()
-	log.Println("[CRON] Cron jobs stopped")
+	LogInfo("cron_stop", "Cron jobs stopped", nil)
 }
 
 // resetBudgets calls the PostgreSQL function to reset budgets
@@ -71,12 +69,12 @@ func (s *CronService) refreshMaterializedViews() error {
 
 // RunBudgetResetNow manually triggers budget reset (for testing)
 func (s *CronService) RunBudgetResetNow() error {
-	log.Println("[CRON] Manual budget reset triggered")
+	LogInfo("cron_manual_budget_reset", "Manual budget reset triggered", nil)
 	return s.resetBudgets()
 }
 
 // RunViewRefreshNow manually triggers view refresh (for testing)
 func (s *CronService) RunViewRefreshNow() error {
-	log.Println("[CRON] Manual view refresh triggered")
+	LogInfo("cron_manual_view_refresh", "Manual view refresh triggered", nil)
 	return s.refreshMaterializedViews()
 }

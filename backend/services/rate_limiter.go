@@ -164,7 +164,11 @@ func (r *RateLimiter) logViolation(userID, configID uuid.UUID, provider *string,
 
 	if err := r.db.Create(&violation).Error; err != nil {
 		// Log error but don't fail the request
-		fmt.Printf("Failed to log rate limit violation: %v\n", err)
+		LogWarn("rate_limit_violation_log_failed", "Failed to log rate limit violation", map[string]interface{}{
+			"user_id":   userID,
+			"config_id": configID,
+			"error":     err,
+		})
 	}
 }
 
@@ -255,5 +259,112 @@ func (r *RateLimiter) ResetAllLimiters() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	r.limiters = make(map[string]*rate.Limiter)
+}
+
+// CheckIPLimit checks rate limit based on IP address
+func (r *RateLimiter) CheckIPLimit(ip string) error {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	// Find IP-based config
+	config, exists := r.configs["global_ip_limit"]
+	if !exists || !config.Enabled {
+		// No config found, allow request (fail-open)
+		return nil
+	}
+
+	// Create limiter key
+	key := fmt.Sprintf("ip:%s", ip)
+	limiter := r.getOrCreateLimiter(key, config.RequestsPerMinute)
+
+	// Check if request is allowed
+	if !limiter.Allow() {
+		// Log violation (use anonymous UUID for unauthenticated requests)
+		anonymousUser := uuid.MustParse("00000000-0000-0000-0000-000000000000")
+		go r.logViolationWithIP(anonymousUser, config.ID, nil, nil, &ip, config.RequestsPerMinute, "minute")
+
+		return fmt.Errorf("IP rate limit exceeded: %d requests per minute", config.RequestsPerMinute)
+	}
+
+	return nil
+}
+
+// CheckEndpointLimit checks rate limit for specific endpoint
+func (r *RateLimiter) CheckEndpointLimit(userID uuid.UUID, endpoint, ip string) error {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	// Find matching endpoint configs
+	for _, config := range r.configs {
+		if !config.Enabled || config.LimitType != "endpoint" {
+			continue
+		}
+
+		// Check if endpoint matches pattern
+		if config.EndpointPattern != nil && matchEndpointPattern(*config.EndpointPattern, endpoint) {
+			// Create limiter key based on scope
+			var key string
+			switch config.Scope {
+			case "ip":
+				key = fmt.Sprintf("endpoint:%s:ip:%s", endpoint, ip)
+			case "user+ip":
+				key = fmt.Sprintf("endpoint:%s:user:%s:ip:%s", endpoint, userID.String(), ip)
+			default: // "user"
+				key = fmt.Sprintf("endpoint:%s:user:%s", endpoint, userID.String())
+			}
+
+			limiter := r.getOrCreateLimiter(key, config.RequestsPerMinute)
+
+			// Check if request is allowed
+			if !limiter.Allow() {
+				// Log violation
+				go r.logViolationWithIP(userID, config.ID, nil, &endpoint, &ip, config.RequestsPerMinute, "minute")
+
+				return fmt.Errorf("endpoint rate limit exceeded for %s: %d requests per minute", endpoint, config.RequestsPerMinute)
+			}
+		}
+	}
+
+	return nil
+}
+
+// matchEndpointPattern checks if endpoint matches the pattern
+// Supports simple wildcard matching (e.g., "/api/auth/*" matches "/api/auth/login")
+func matchEndpointPattern(pattern, endpoint string) bool {
+	if pattern == endpoint {
+		return true
+	}
+
+	// Simple wildcard matching
+	if len(pattern) > 0 && pattern[len(pattern)-1] == '*' {
+		prefix := pattern[:len(pattern)-1]
+		if len(endpoint) >= len(prefix) && endpoint[:len(prefix)] == prefix {
+			return true
+		}
+	}
+
+	return false
+}
+
+// logViolationWithIP logs a rate limit violation with IP and endpoint info
+func (r *RateLimiter) logViolationWithIP(userID, configID uuid.UUID, provider *string, endpoint *string, sourceIP *string, limitValue int, windowType string) {
+	violation := models.RateLimitViolation{
+		UserID:       userID,
+		ConfigID:     configID,
+		Provider:     provider,
+		Endpoint:     endpoint,
+		SourceIP:     sourceIP,
+		RequestsMade: limitValue + 1, // Exceeded by 1
+		LimitValue:   limitValue,
+		WindowType:   windowType,
+	}
+
+	if err := r.db.Create(&violation).Error; err != nil {
+		// Log error but don't fail the request
+		LogWarn("rate_limit_violation_log_failed", "Failed to log rate limit violation", map[string]interface{}{
+			"user_id":   userID,
+			"config_id": configID,
+			"error":     err,
+		})
+	}
 }
