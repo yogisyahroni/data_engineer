@@ -10,11 +10,13 @@ export function useComments(entityType: string, entityId: string) {
     const queryKey = ['comments', entityType, entityId];
 
     // Query: List comments for entity
-    const { data: comments = [], isLoading, error } = useQuery({
+    const { data, isLoading, error } = useQuery({
         queryKey,
         queryFn: () => commentApi.list(entityType, entityId),
         enabled: !!entityType && !!entityId,
     });
+
+    const comments = data?.comments || [];
 
     // Mutation: Create comment (with optimistic update)
     const createMutation = useMutation({
@@ -59,7 +61,7 @@ export function useComments(entityType: string, entityId: string) {
     // Mutation: Update comment (with optimistic update)
     const updateMutation = useMutation({
         mutationFn: ({ id, content }: { id: string; content: string }) =>
-            commentApi.update(id, content),
+            commentApi.update(id, { content }),
         onMutate: async ({ id, content }) => {
             await queryClient.cancelQueries({ queryKey });
             const previousComments = queryClient.getQueryData(queryKey);
@@ -118,6 +120,41 @@ export function useComments(entityType: string, entityId: string) {
         },
     });
 
+    // Mutation: Resolve comment
+    const resolveMutation = useMutation({
+        mutationFn: ({ id, isResolved }: { id: string; isResolved: boolean }) =>
+            isResolved ? commentApi.resolve(id) : commentApi.unresolve(id),
+        onMutate: async ({ id, isResolved }) => {
+            await queryClient.cancelQueries({ queryKey });
+            const previousComments = queryClient.getQueryData(queryKey);
+
+            queryClient.setQueryData(queryKey, (old: any) =>
+                (old || []).map((item: any) =>
+                    item.id === id ? { ...item, isResolved, _optimistic: true } : item
+                )
+            );
+
+            return { previousComments };
+        },
+        onSuccess: (updatedComment, { isResolved }) => {
+            queryClient.setQueryData(queryKey, (old: any) =>
+                (old || []).map((item: any) =>
+                    item.id === updatedComment.id ? updatedComment : item
+                )
+            );
+            toast.success(isResolved ? 'Comment resolved' : 'Comment unresolved');
+        },
+        onError: (error: Error, variables, context) => {
+            if (context?.previousComments) {
+                queryClient.setQueryData(queryKey, context.previousComments);
+            }
+            toast.error(`Failed to update resolution status: ${error.message}`);
+        },
+        onSettled: () => {
+            queryClient.invalidateQueries({ queryKey });
+        },
+    });
+
     return {
         // Data
         comments,
@@ -149,10 +186,19 @@ export function useComments(entityType: string, entityId: string) {
                 return { success: false, error: error.message };
             }
         },
+        resolveComment: async (id: string, isResolved: boolean) => {
+            try {
+                await resolveMutation.mutateAsync({ id, isResolved });
+                return { success: true };
+            } catch (error: any) {
+                return { success: false, error: error.message };
+            }
+        },
 
         // Loading states
         isCreating: createMutation.isPending,
         isUpdating: updateMutation.isPending,
         isDeleting: deleteMutation.isPending,
+        isResolving: resolveMutation.isPending,
     };
 }

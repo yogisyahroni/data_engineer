@@ -13,7 +13,11 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CommentThread } from '@/components/collaboration/comment-thread';
 import { MessageSquare } from 'lucide-react';
 import { useState } from 'react';
-import { ChartVisualization } from '@/components/chart-visualization';
+import dynamic from 'next/dynamic';
+const ChartVisualization = dynamic(() => import('@/components/chart-visualization').then(mod => mod.ChartVisualization), {
+    ssr: false,
+    loading: () => <div className="h-full w-full flex items-center justify-center bg-muted/20 animate-pulse rounded-lg"><span className="text-muted-foreground text-xs">Loading Visualization...</span></div>
+});
 import { VisualizationConfig } from '@/lib/types';
 import { AiTextWidget } from "./ai-text-widget";
 import { ExportService } from '@/lib/services/export-service';
@@ -21,6 +25,10 @@ import { StatusBadge } from '@/components/catalog/status-badge';
 
 import { toast } from 'sonner';
 import { AIExplainDialog } from './ai-explain-dialog';
+
+import { FilterCriteria } from '@/lib/cross-filter-context';
+import { useSession } from 'next-auth/react';
+import { useComments } from '@/hooks/use-comments';
 
 interface DashboardCardProps {
     card: {
@@ -42,6 +50,7 @@ interface DashboardCardProps {
     className?: string;
     onChartClick?: (params: any, cardId: string) => void;
     onDrillThrough?: (cardId: string) => void;
+    activeFilters?: FilterCriteria[];
 }
 
 export function DashboardCard({
@@ -51,9 +60,21 @@ export function DashboardCard({
     onEdit,
     className,
     onChartClick,
-    onDrillThrough
+    onDrillThrough,
+    activeFilters = []
 }: DashboardCardProps) {
     const [isExplainOpen, setIsExplainOpen] = useState(false);
+    const { data: session } = useSession();
+    const currentUserId = session?.user?.id || '';
+
+    const {
+        comments,
+        isLoading: isCommentsLoading,
+        createComment,
+        deleteComment,
+        updateComment,
+        resolveComment
+    } = useComments('card', card.id);
     return (
         <>
             <Card id={`card-${card.id}`} className={`h-full flex flex-col overflow-hidden border-border/50 shadow-sm hover:shadow-md transition-shadow relative group ${className}`}>
@@ -71,12 +92,34 @@ export function DashboardCard({
                     {/* Comments Trigger */}
                     <Popover>
                         <PopoverTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-6 w-6 mr-1 hover:bg-muted">
+                            <Button variant="ghost" size="icon" className="h-6 w-6 mr-1 hover:bg-muted relative">
                                 <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
+                                {comments.length > 0 && (
+                                    <span className="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full" />
+                                )}
                             </Button>
                         </PopoverTrigger>
                         <PopoverContent className="w-[350px] p-0" align="end" side="bottom">
-                            <CommentThread cardId={card.id} />
+                            <CommentThread
+                                entityType="card"
+                                entityId={card.id}
+                                comments={comments}
+                                currentUserId={currentUserId}
+                                isLoading={isCommentsLoading}
+                                onCreateComment={async (data) => {
+                                    const result = await createComment({ ...data, entityType: 'card', entityId: card.id });
+                                    if (!result.success) throw new Error(result.error);
+                                }}
+                                onResolveComment={async (commentId, isResolved) => {
+                                    await resolveComment(commentId, isResolved);
+                                }}
+                                onDeleteComment={async (commentId) => {
+                                    await deleteComment(commentId);
+                                }}
+                                onEditComment={async (commentId, content) => {
+                                    await updateComment(commentId, content);
+                                }}
+                            />
                         </PopoverContent>
                     </Popover>
 
@@ -168,6 +211,8 @@ export function DashboardCard({
                             data={card.data || []} // TODO: Pass real data
                             isLoading={false} // TODO: valid loading state
                             onDataClick={(params) => onChartClick?.(params, card.id)}
+                            chartId={card.id}
+                            activeFilters={activeFilters}
                         />
                     ) : card.type === 'ai-text' ? (
                         <AiTextWidget

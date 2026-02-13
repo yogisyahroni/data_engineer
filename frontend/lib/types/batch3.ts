@@ -5,6 +5,7 @@ export interface Collection {
     id: string;
     name: string;
     description?: string;
+    icon?: string;
     userId: string;
     workspaceId?: string;
     createdAt: string;
@@ -23,13 +24,14 @@ export interface CollectionItem {
 export interface CreateCollectionRequest {
     name: string;
     description?: string;
+    icon?: string;
     workspaceId?: string;
 }
 
 // Comments
 export interface Comment {
     id: string;
-    entityType: 'pipeline' | 'dataflow' | 'collection';
+    entityType: 'pipeline' | 'dataflow' | 'collection' | 'card';
     entityId: string;
     userId: string;
     content: string;
@@ -38,7 +40,7 @@ export interface Comment {
 }
 
 export interface CreateCommentRequest {
-    entityType: 'pipeline' | 'dataflow' | 'collection';
+    entityType: 'pipeline' | 'dataflow' | 'collection' | 'card';
     entityId: string;
     content: string;
 }
